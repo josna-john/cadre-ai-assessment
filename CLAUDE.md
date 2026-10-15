@@ -12,6 +12,7 @@ A public customer support chatbot for Cadre AI, an AI strategy and implementatio
 | `npm run typecheck` / `npm test` / `npm run lint` | Must pass before every commit. Use `/preflight`. |
 | `npm run eval` | Runs the eval set against the **real model**. It costs money, so see "Budget". |
 | `curl localhost:3000/api/health/ai` | End-to-end LLM check: auth, structured output, latency, cost. |
+| `node --env-file=.env.local scripts/verify-handoff.mjs <baseUrl>` | Handoff smoke test against the real DB (cleans up after itself). |
 
 Project slash commands live in `.claude/commands/`:
 - `/preflight`: typecheck, tests, lint and a secrets scan.
@@ -31,7 +32,10 @@ knowledge/*.md          Curated facts about Cadre. Every fact has a source URL. 
 src/prompts/            System prompt pieces, one file per concern, with comments explaining WHY each rule exists.
 src/lib/ai.ts           Model config (OpenRouter). Changing model = editing one string here.
 src/lib/actions.ts      Fixed enum of CTA actions → URLs. The model picks an action; it never writes URLs.
-src/lib/handoff.ts      zod schema + persistence for escalations.
+src/lib/handoff.ts      Handoff topics + zod schemas (shared with the browser: no secrets).
+src/lib/handoff-store.ts  Server-only Supabase insert. The single seam to swap for a CRM.
+supabase/migrations/    Schema. Apply with `npx supabase db push --db-url "$POSTGRES_URL_NON_POOLING"`.
+scripts/verify-handoff.mjs  Smoke test: POST a handoff, check RLS blocks the public key, delete the row.
 src/app/api/chat/       Streaming chat route: validate → cap → prompt → stream → log.
 evals/                  Scripted conversations + deterministic scorers (`npm run eval`).
 ```

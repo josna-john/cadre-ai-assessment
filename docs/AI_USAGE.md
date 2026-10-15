@@ -35,6 +35,7 @@ A running log of how AI tools were used to build this project, with concrete exa
 | Oct 15 | OpenRouter switch | Checked the installed AI SDK docs and npm peer deps before choosing `@openrouter/ai-sdk-provider`. Verified the key and model IDs via OpenRouter's free endpoints, then ran a real health check | |
 | Oct 15 | Chat UI (parallel) | A background subagent built `src/components/chat/*` against a written contract (`src/lib/actions.ts`, `src/lib/limits.ts`, the error JSON shape) while the main session wrote the route, KB and prompt. It reported where AI SDK 7 differed from the contract (the error shape) and fixed a Next 16 prerender failure (a random chat ID under Cache Components) | Reviewed its report, then verified the UI end to end in a real browser (Playwright) against the live model |
 | Oct 15 | Chat route + KB | Checked the installed AI SDK 7 type definitions before writing the route, and found `onFinish` is deprecated in favour of `onEnd`. Wrote the KB from the research subagent's notes, leaving out everything marked UNVERIFIED | |
+| Oct 15 | Handoff (Phase 3) | Loaded the Vercel Marketplace and Supabase agent skills before writing code. Provisioned Supabase from the CLI (terms needed one browser click), wrote the migration with RLS on and grants revoked, then built the two-step handoff (model offers, visitor submits). Verified it against the real DB: a row is saved, the publishable key is denied, and the test rows are deleted | Questioned why a table was needed when Cadre already has a contact form. That led to D4 being rewritten around context, routing and the CRM swap point. Accepted the Supabase terms |
 | Oct 14 | AI pipeline smoke test | Built `/api/health/ai` (structured output + usage) and deployed it before any feature work. It surfaced two blockers on day 0: the gateway needed a card on file, then the free tier excluded current Claude models | Added billing and $10 paid credit. Kept current models rather than downgrading to save $10 |
 
 ## Where AI fell short / what I had to correct
@@ -49,6 +50,20 @@ A running log of how AI tools were used to build this project, with concrete exa
 - **Oct 15:** the first chat route used two model steps. A live curl test showed every answer printed twice, at double the cost. Unit tests and typecheck couldn't catch this, only running the real model did. It's fixed (D5), and the eval set will include a "no duplicated text" check.
 - **Oct 15:** the first draft of the system prompt used `${/* comment */ ""}` to put rationale comments inline. It worked but was hard to read, so it was rewritten as named sections, each with a normal comment.
 - **Oct 15:** a large multi-file shell heredoc failed on a quoting error and created nothing. We wrote the files individually with the editor tool instead, and checked the result with a listing.
+
+- **Oct 15:** in the handoff route test, `vi.fn().mockRejectedValue()` made Vitest 5 fail the test even though the route caught the error and returned the right 503. Logging the response proved the route was correct, so the mock was replaced with a plain stub instead of changing the route.
+- **Oct 15:** the first Phase 3 eval run scored 19/20. The failing case was the scorer's fault: the bot said healthcare "aren't among the industries Cadre lists", which is correct, but the phrase list only had "not among". The reply was read before the list was widened, so the bot wasn't being graded into passing.
+
+- **Oct 15:** the `diff-reviewer` subagent reviewed the handoff before commit and found 12 issues, none blocking. Fixed:
+  - If the model's summary went over the length cap, the tool call failed and the reply said "use the form below" with no form. The tool input is now looser and execute() clips the summary; a fallback with email and booking buttons covers any remaining tool error.
+  - A 503 unmounted the form and threw away what the visitor had typed.
+  - Two fallback messages read badly.
+  - No body-size limit on the public endpoint.
+  - NUL characters and an emoji split at the transcript cut would become 503s from Postgres.
+  - The topic list was hard-coded in three places. The prompt now generates it, and a test checks it against the migration.
+  - No `server-only` guard on the database module.
+  - `.env.example` was missing a variable.
+- **Oct 15:** I edited `handoff.ts` with an inline Python script that crashed on a surrogate escape *after* opening the file for writing. That truncated an untracked file to 0 bytes, which git couldn't restore. It was noticed when every follow-up edit failed to match, then rewritten in full. Lesson: use the editor tool for edits, not scripts that write in place (several files here use CRLF line endings, which also made script string matching fail silently).
 
 ## What I'd do differently
 - 

@@ -1,4 +1,5 @@
 import { ACTIONS } from "@/lib/actions";
+import { HANDOFF_TOPICS } from "@/lib/handoff";
 
 // System prompt for the Cadre support assistant, built from named sections.
 // Order: role → grounding → links → escalation → scope → style → knowledge.
@@ -32,13 +33,23 @@ ${Object.entries(ACTIONS)
   .join("\n")}
 - Use actions whenever a next step exists: booking a call → \`book_call\`; the Maturity Index → \`maturity_index\`; portal questions → \`client_portal\`; results or examples → \`case_studies\`; reaching a person → \`email_team\` and/or \`call_team\`. Pick at most 3 per reply.
 - In your text, refer to the buttons naturally ("use the button below"). Don't spell out where they link.
-- Write your full answer first, then call \`show_action\` at the end of the same response. You won't get another turn after the tool call, so don't save any of the answer for later.`;
+- Write your full answer first, then call your tools (\`show_action\`, \`offer_handoff\`) at the end of the same response. You won't get another turn after the tool calls, so don't save any of the answer for later.`;
 
-// Prevents dead ends: the brief requires unanswerable questions to be
-// escalated or redirected, and pushy users mustn't talk the bot into guessing.
+// Prevents:
+// - dead ends: the brief requires unanswerable questions to be escalated, and
+//   a bare "email us" loses the visitor's question
+// - pushy users talking the bot into guessing
+// - the bot collecting contact details in chat (the form does that, with consent)
+// - handoff forms on questions the bot answered (noise for the team)
 const ESCALATION = `## Escalation
-- When you can't answer, or the visitor asks for a person, say what you can't help with in one sentence, then offer a way to reach the team (\`book_call\`, \`email_team\`, \`call_team\`).
-- Escalate account-specific, pricing, legal/contract, security-document and login-problem questions. Always do this, even if the visitor pushes back.`;
+- When you can't answer, or the visitor asks for a person, say what you can't help with in one sentence, then call \`offer_handoff\`. The website shows a short form so Cadre's team can follow up by email. Mention it naturally ("you can send this to the team with the form below").
+- Always escalate account-specific, pricing, legal/contract, security-document and login-problem questions, even if the visitor pushes back.
+- \`offer_handoff\` topics: ${Object.keys(HANDOFF_TOPICS)
+  .map((t) => `\`${t}\``)
+  .join(", ")}. The summary is one third-person sentence about what they need (for example "Wants pricing for the AI Transformation Intensive for a 200-person mortgage lender"). Never put names, emails or other personal details in it.
+- Never ask for the visitor's name, email or phone number in chat; the form collects them.
+- Don't offer a handoff when you answered the question, or for off-topic requests.
+- You can also call \`show_action\` in the same response (for example \`book_call\` for pricing).`;
 
 // Prevents the bot being used as a free general-purpose assistant on Cadre's
 // budget, prompt-injection takeovers, and visitors pasting sensitive data.

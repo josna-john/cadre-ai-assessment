@@ -25,7 +25,7 @@ const bodySchema = z.object({
 // convertToModelMessages throw.
 const ALLOWED_PARTS: Record<"user" | "assistant", ReadonlySet<string>> = {
   user: new Set(["text"]),
-  assistant: new Set(["text", "step-start", "tool-show_action"]),
+  assistant: new Set(["text", "step-start", "tool-show_action", "tool-offer_handoff"]),
 };
 
 export type ChatRequestError = {

@@ -44,4 +44,14 @@ describe("score", () => {
   it("catches an answer written twice (the two-step regression)", () => {
     expect(score(base, { text: ok + " " + ok, actions: [] })).toContain("answer not duplicated");
   });
+
+  it("checks handoff expectations and keeps personal details out of the summary", () => {
+    const offer = { topic: "pricing" as const, summary: "Wants pricing for the Intensive." };
+    expect(score({ ...base, handoff: ["pricing"] }, { text: ok, actions: [], handoff: offer })).toEqual([]);
+    expect(score({ ...base, handoff: [] }, { text: ok, actions: [] })).toEqual(["missing handoff"]);
+    expect(score({ ...base, handoff: ["security_compliance"] }, { text: ok, actions: [], handoff: offer })).toHaveLength(1);
+    expect(score({ ...base, handoff: false }, { text: ok, actions: [], handoff: offer })).toEqual(["unexpected handoff: pricing"]);
+    const leaky = { ...offer, summary: "Ada (ada@example.com) wants pricing." };
+    expect(score(base, { text: ok, actions: [], handoff: leaky })).toEqual(["no personal details in handoff summary"]);
+  });
 });

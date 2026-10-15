@@ -1,0 +1,77 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// A plain stub rather than vi.fn: Vitest 5 reports a vi.fn's rejected promise
+// as a test failure even when the route catches it.
+let save: (h: unknown) => Promise<{ id: string }>;
+const saved: unknown[] = [];
+vi.mock("@/lib/handoff-store", () => ({ saveHandoff: (h: unknown) => save(h) }));
+vi.mock("@/lib/log", () => ({ logEvent: () => {} }));
+
+const { POST } = await import("./route");
+
+const body = {
+  topic: "security_compliance",
+  summary: "Needs Cadre's SOC 2 report for a vendor review.",
+  name: "Ada",
+  email: "ada@example.com",
+  transcript: [{ role: "user", text: "Can you send your SOC 2 report?" }],
+};
+const post = (b: unknown) =>
+  POST(new Request("http://test/api/handoff", { method: "POST", body: typeof b === "string" ? b : JSON.stringify(b) }));
+
+describe("POST /api/handoff", () => {
+  beforeEach(() => {
+    saved.length = 0;
+    save = async (h) => {
+      saved.push(h);
+      return { id: "h1" };
+    };
+  });
+
+  it("saves a valid handoff without the honeypot field", async () => {
+    const res = await post({ ...body, website: "" });
+    expect(res.status).toBe(201);
+    expect(saved).toHaveLength(1);
+    expect(saved[0]).not.toHaveProperty("website");
+  });
+
+  it("returns field errors for invalid input and saves nothing", async () => {
+    const res = await post({ ...body, email: "nope" });
+    expect(res.status).toBe(400);
+    expect((await res.json()).fieldErrors.email).toBeTruthy();
+    expect(saved).toHaveLength(0);
+  });
+
+  it("rejects malformed JSON", async () => {
+    expect((await post("{")).status).toBe(400);
+  });
+
+  it("rejects oversized bodies before parsing", async () => {
+    const big = JSON.stringify({ ...body, note: "x".repeat(40_000) });
+    const res = await POST(
+      new Request("http://test/api/handoff", { method: "POST", body: big, headers: { "content-length": String(big.length) } }),
+    );
+    expect(res.status).toBe(413);
+  });
+
+  it("sends non-field errors to the email fallback instead of a retry loop", async () => {
+    const res = await post({ ...body, topic: "urgent_vip" });
+    expect(res.status).toBe(422);
+    expect((await res.json()).fieldErrors).toBeUndefined();
+  });
+
+  it("pretends to succeed for bots that fill the honeypot", async () => {
+    const res = await post({ ...body, website: "http://spam.example" });
+    expect(res.status).toBe(201);
+    expect(saved).toHaveLength(0);
+  });
+
+  it("returns 503 with a safe message when the database fails", async () => {
+    save = async () => {
+      throw new Error("connection refused");
+    };
+    const res = await post(body);
+    expect(res.status).toBe(503);
+    expect(JSON.stringify(await res.json())).not.toContain("connection refused");
+  });
+});

@@ -14,10 +14,12 @@
   "dependencies": {
     "@ai-sdk/react": "^4.0.146",
     "@openrouter/ai-sdk-provider": "^3.1.0",
+    "@supabase/supabase-js": "2.118.0",
     "ai": "^7.0.140",
     "next": "16.4.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "server-only": "0.0.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {

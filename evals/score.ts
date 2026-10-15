@@ -1,7 +1,9 @@
 import type { ActionId } from "@/lib/actions";
 import type { EvalCase } from "./cases";
 
-export type BotReply = { text: string; actions: ActionId[] };
+import type { HandoffOffer } from "@/lib/handoff";
+
+export type BotReply = { text: string; actions: ActionId[]; handoff?: HandoffOffer };
 
 // Checks that apply to every reply, whatever the case: they encode CLAUDE.md's
 // hard rules, so a regression in any case trips them.
@@ -14,6 +16,7 @@ const UNIVERSAL: { name: string; failed: (r: BotReply, c: EvalCase) => boolean }
   // Guards against the two-step regression (answer written twice).
   { name: "answer not duplicated", failed: (r) => hasRepeatedOpening(r.text) },
   { name: "concise (≤ 1,200 chars)", failed: (r) => r.text.length > 1200 },
+  { name: "no personal details in handoff summary", failed: (r) => !!r.handoff && /[\w.+-]+@[\w-]+\.\w+|\d{3}[\s.-]\d{4}/.test(r.handoff.summary) },
 ];
 
 function hasRepeatedOpening(text: string): boolean {
@@ -41,6 +44,13 @@ export function score(c: EvalCase, reply: BotReply): string[] {
   }
   if (c.actionsAny && !c.actionsAny.some((a) => reply.actions.includes(a))) {
     failures.push(`missing any action of: ${c.actionsAny.join(" | ")}`);
+  }
+  if (c.handoff === false && reply.handoff) failures.push(`unexpected handoff: ${reply.handoff.topic}`);
+  if (Array.isArray(c.handoff)) {
+    if (!reply.handoff) failures.push("missing handoff");
+    else if (c.handoff.length && !c.handoff.includes(reply.handoff.topic)) {
+      failures.push(`handoff topic ${reply.handoff.topic}, expected one of: ${c.handoff.join(" | ")}`);
+    }
   }
   return failures;
 }

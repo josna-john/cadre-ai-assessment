@@ -5,6 +5,7 @@
 // Needs OPENROUTER_API_KEY. Run via `tsx --env-file=.env.local`.
 import type { UIMessage } from "ai";
 import type { ActionId } from "@/lib/actions";
+import type { HandoffOffer } from "@/lib/handoff";
 import { MODELS } from "@/lib/ai";
 import { streamChat, summarizeSteps } from "@/lib/chat";
 import { type EvalCase, cases } from "./cases";
@@ -22,7 +23,8 @@ async function runCase(c: EvalCase) {
   const actions = toolResults.flatMap((r) =>
     r.toolName === "show_action" ? (r.output as { actions: { id: ActionId }[] }).actions.map((a) => a.id) : [],
   );
-  return { text, actions, ms: Date.now() - started, ...summarizeSteps(steps) };
+  const handoff = toolResults.find((r) => r.toolName === "offer_handoff")?.output as HandoffOffer | undefined;
+  return { text, actions, handoff, ms: Date.now() - started, ...summarizeSteps(steps) };
 }
 
 async function main() {
@@ -31,17 +33,17 @@ async function main() {
   console.log(`Running ${selected.length} case(s) against ${MODELS.chat}\n`);
 
   const rows = [];
-  const failures: { id: string; reasons: string[]; text: string; actions: string[] }[] = [];
+  const failures: { id: string; reasons: string[]; text: string; actions: string[]; handoff?: HandoffOffer }[] = [];
 
   // Sequential on purpose: keeps latency numbers honest and is gentle on rate limits.
   for (const c of selected) {
     try {
       const r = await runCase(c);
       const reasons = score(c, r);
-      rows.push({ id: c.id, covers: c.covers, pass: reasons.length === 0 ? "✓" : "✗", ms: r.ms, costUsd: r.costUsd.toFixed(5), actions: r.actions.join(",") });
-      if (reasons.length) failures.push({ id: c.id, reasons, text: r.text, actions: r.actions });
+      rows.push({ id: c.id, covers: c.covers, pass: reasons.length === 0 ? "✓" : "✗", ms: r.ms, costUsd: r.costUsd.toFixed(5), actions: r.actions.join(","), handoff: r.handoff?.topic ?? "" });
+      if (reasons.length) failures.push({ id: c.id, reasons, text: r.text, actions: r.actions, handoff: r.handoff });
     } catch (err) {
-      rows.push({ id: c.id, covers: c.covers, pass: "ERR", ms: 0, costUsd: "0", actions: "" });
+      rows.push({ id: c.id, covers: c.covers, pass: "ERR", ms: 0, costUsd: "0", actions: "", handoff: "" });
       failures.push({ id: c.id, reasons: [String(err)], text: "", actions: [] });
     }
   }
