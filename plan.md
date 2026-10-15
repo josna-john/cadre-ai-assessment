@@ -12,10 +12,10 @@ Source of truth for scope and sequencing, derived from [`docs/BRIEF.md`](docs/BR
 | R5 | "A business leader asking what the AI Maturity Index is and how to get scored" | 2–3 | [ ] |
 | R6 | "Someone asking about Cadre's approach to LLM selection and data security" | 2 | [ ] |
 | R7 | "A user asking a question the bot can't answer — and needs to escalate or redirect" | 3 | [ ] |
-| R8 | "A deployed, publicly accessible URL" | 0 | [ ] |
-| R9 | "A CLAUDE.md at the root" / "A plan.md at the root" | 0 | [ ] |
+| R8 | "A deployed, publicly accessible URL" | 0 | [x] |
+| R9 | "A CLAUDE.md at the root" / "A plan.md at the root" | 0 | [x] |
 | R10 | Zip of the project including `.git`, excluding dependency folders | 6 | [ ] |
-| R11 | Chatbot LLM runs through the provided OpenRouter key ($5 budget) | 0 | [ ] |
+| R11 | Chatbot LLM runs through the provided OpenRouter key ($5 budget) | 0 | [x] |
 
 ## 2. Product decisions (what the bot knows, and where it draws the line)
 - **Audience:** prospects (what Cadre does, fit, how to start), existing clients (portal access and support routing), and the curious (Maturity Index, approach, security).
