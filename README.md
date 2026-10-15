@@ -23,4 +23,4 @@ _How to run them and the latest results._
 ## Docs
 - [Decisions & trade-offs](docs/DECISIONS.md)
 - [How AI tools were used](docs/AI_USAGE.md)
-- [Plan & requirements](docs/PLAN.md)
+- [Plan & requirements](plan.md)

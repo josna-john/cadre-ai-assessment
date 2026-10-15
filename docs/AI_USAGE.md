@@ -8,7 +8,7 @@ A running log of how AI tools were used to build this project, with concrete exa
 
 ## Workflow
 - `CLAUDE.md` holds project context, deadlines, conventions, and the definition of done, so every session starts aligned.
-- Plan first (`docs/PLAN.md`), then build in small reviewed increments, with a deploy after each one.
+- Plan first (`plan.md`), then build in small reviewed increments, with a deploy after each one.
 
 ## Log
 | When | Task | What AI did | What I changed / verified myself |
