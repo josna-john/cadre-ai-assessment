@@ -57,7 +57,8 @@ evals/                  Scripted conversations + deterministic scorers (`npm run
 - The key is for the chatbot's runtime only. Don't use it for coding assistance or ad-hoc experiments.
 - Check spend with `/budget`.
 - Production caps (input length, history length, output tokens, rate limit) exist to protect this budget. Don't loosen them without a reason in `docs/DECISIONS.md`.
-- A Haiku 5.5 health check costs about $0.00004. Measure a full chat turn after the KB lands and record it in DECISIONS.
+- A Haiku 5.5 health check costs about $0.00004. A chat turn costs about $0.0003 with a warm prompt cache, or $0.0009 on a cache write (D7). A full eval run costs about $0.01.
+- Rate limits: one Vercel Firewall rule (20 POST/min per IP on `/api/*`) plus a 5-per-10-min handoff cap in code (D8). Don't add a cap that the platform refuses; record the reason in DECISIONS instead.
 
 ## Next.js 16 / AI SDK 7 gotchas
 - Read `AGENTS.md`. This Next version has breaking changes, so check `node_modules/next/dist/docs/` before Next-specific code.

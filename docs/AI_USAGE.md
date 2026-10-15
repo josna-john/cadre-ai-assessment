@@ -65,5 +65,17 @@ A running log of how AI tools were used to build this project, with concrete exa
   - `.env.example` was missing a variable.
 - **Oct 15:** I edited `handoff.ts` with an inline Python script that crashed on a surrogate escape *after* opening the file for writing. That truncated an untracked file to 0 bytes, which git couldn't restore. It was noticed when every follow-up edit failed to match, then rewritten in full. Lesson: use the editor tool for edits, not scripts that write in place (several files here use CRLF line endings, which also made script string matching fail silently).
 
+- **Oct 15:** Phase 4 found two problems that typecheck and the unit tests couldn't. Both were found by probing real behaviour:
+  - Prompt caching was silently off. A one-call usage probe showed `cacheReadTokens: 0`, so 90% of every turn's cost was paying for the same prefix again (fixed in D7, −60% per cached turn). The first fix attempt put the prompt in a `system` *message*, which AI SDK 7 rejects; the type definitions showed that `instructions` accepts provider options.
+  - A forced 300 ms timeout showed the server sending an `abort` chunk, which the UI treats like the visitor pressing Stop. The result was a blank reply with no error. It now becomes a retryable error, verified in a browser.
+- **Oct 15:** the `diff-reviewer` found 5 non-blocking issues in Phase 4. Fixed:
+  - The handoff form's 429 told the visitor to "try again" into a 10-minute lockout.
+  - IPv6 clients could rotate addresses within their /64 to reset the handoff limit.
+  - A future switch to Gemini or a reasoning model would break on the stripped signatures. Now documented in the code and in D8.
+  - Cache tokens weren't logged, so a silent loss of caching would only show up as higher cost.
+
+  It also confirmed the timeout regex can't misfire on a user Stop, and that Vercel overwrites spoofed `x-forwarded-for`.
+- **Oct 15:** a second and third firewall rate-limit rule were refused by the Hobby plan. The design was changed to one edge rule plus a database-backed handoff cap (D8), rather than adding a new service.
+
 ## What I'd do differently
 - 

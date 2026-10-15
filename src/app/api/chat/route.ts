@@ -1,6 +1,7 @@
 import { createUIMessageStreamResponse, toUIMessageStream } from "ai";
 import { MODELS } from "@/lib/ai";
 import { streamChat } from "@/lib/chat";
+import { timeoutsAsErrors } from "@/lib/chat-stream";
 import { parseChatRequest } from "@/lib/chat-request";
 import { logEvent } from "@/lib/log";
 
@@ -34,7 +35,7 @@ export async function POST(req: Request) {
   }
 
   return createUIMessageStreamResponse({
-    stream: toUIMessageStream({
+    stream: timeoutsAsErrors(toUIMessageStream({
       stream: result.stream,
       // Errors after streaming starts can't change the HTTP status, so they go
       // out as a stream error part. Log the detail, and send the user a safe
@@ -50,6 +51,6 @@ export async function POST(req: Request) {
           message: "Sorry, I couldn't finish that answer. Please try again.",
         });
       },
-    }),
+    })),
   });
 }

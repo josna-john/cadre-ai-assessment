@@ -19,8 +19,15 @@ function parseBody(raw: unknown): ErrorBody | null {
   }
 }
 
+const RATE_LIMITED = "You're sending messages quickly. Please wait a minute and try again.";
+
 export function friendlyErrorMessage(error: Error): string {
-  const withBody = error as Error & { responseBody?: unknown };
+  const withBody = error as Error & { responseBody?: unknown; statusCode?: number };
+  // The firewall's rate limit (see docs/DECISIONS.md D8) answers before our
+  // route runs, so its 429 has no JSON body to parse.
+  if (withBody.statusCode === 429 || /too many requests|rate limit/i.test(error.message)) {
+    return RATE_LIMITED;
+  }
   const body = parseBody(withBody.responseBody) ?? parseBody(error.message);
   if (body && typeof body.message === "string" && body.message.trim()) {
     return body.message;

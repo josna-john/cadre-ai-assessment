@@ -58,6 +58,20 @@ describe("parseChatRequest", () => {
     expect(r.ok && r.messages[1].parts.map((p) => p.type)).toEqual(["text"]);
   });
 
+  it("strips provider metadata so it doesn't count against the history cap", () => {
+    const tool = {
+      type: "tool-show_action",
+      toolCallId: "t1",
+      state: "output-available",
+      input: { actions: ["book_call"] },
+      output: { actions: [] },
+      callProviderMetadata: { openrouter: { reasoning_details: [{ signature: "x".repeat(1400) }] } },
+    };
+    const r = parseChatRequest({ messages: [user("hi", "u0"), { id: "a0", role: "assistant", parts: [tool] }, user("next")] });
+    expect(r.ok && r.messages[1].parts[0]).not.toHaveProperty("callProviderMetadata");
+    expect(r.ok && r.messages[1].parts[0]).toHaveProperty("toolCallId", "t1");
+  });
+
   it("caps total history size, dropping the oldest turns, against an oversized scripted history", () => {
     const huge = "x".repeat(LIMITS.maxHistoryChars);
     const r = parseChatRequest({ messages: [user(huge, "u0"), assistant(huge, "a0"), user("short question")] });

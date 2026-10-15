@@ -6,12 +6,18 @@ import { logEvent } from "./log";
 import { chatTools } from "./tools";
 import { buildSystemPrompt } from "@/prompts/system";
 
-type Step = { usage: { inputTokens?: number; outputTokens?: number }; providerMetadata?: unknown; toolCalls: { toolName: string }[] };
+type Step = {
+  usage: { inputTokens?: number; outputTokens?: number; inputTokenDetails?: { cacheReadTokens?: number } };
+  providerMetadata?: unknown;
+  toolCalls: { toolName: string }[];
+};
 
 // Tokens, cost and tool calls across all steps of a turn, for logs and evals.
+// cachedInputTokens makes a silent loss of prompt caching (D7) visible in logs.
 export function summarizeSteps(steps: readonly Step[]) {
   return {
     inputTokens: steps.reduce((n, s) => n + (s.usage.inputTokens ?? 0), 0),
+    cachedInputTokens: steps.reduce((n, s) => n + (s.usage.inputTokenDetails?.cacheReadTokens ?? 0), 0),
     outputTokens: steps.reduce((n, s) => n + (s.usage.outputTokens ?? 0), 0),
     costUsd: steps.reduce((n, s) => n + (costUsd(s.providerMetadata) ?? 0), 0),
     tools: steps.flatMap((s) => s.toolCalls.map((c) => c.toolName)),
@@ -35,7 +41,14 @@ export async function streamChat(
 
   return streamText({
     model: model("chat"),
-    system: buildSystemPrompt(loadKnowledge()),
+    instructions: {
+      role: "system",
+      content: buildSystemPrompt(loadKnowledge()),
+      // The prompt (tools + rules + KB, about 6.9k tokens) is identical on
+      // every turn, so mark it cacheable. Anthropic caches everything up to
+      // this breakpoint; cache reads cost a tenth of normal input. See D7.
+      providerOptions: { openrouter: { cacheControl: { type: "ephemeral" } } },
+    },
     messages: modelMessages,
     tools: chatTools,
     // One step: the model writes its answer and calls show_action in the same

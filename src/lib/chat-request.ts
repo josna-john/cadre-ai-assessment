@@ -42,6 +42,22 @@ const INVALID: ChatRequestError = {
   message: "That request wasn't understood. Please refresh and try again.",
 };
 
+// Each reply carries an opaque ~1.4 KB provider signature (OpenRouter's
+// reasoning_details) that the client echoes back. It's not needed (no
+// reasoning is used; see D7), and it would eat the history size cap meant for
+// conversation content.
+// If you switch to a reasoning model or Gemini, remove this strip and allow
+// `reasoning` parts: those providers need the signatures replayed.
+function stripProviderMetadata<P extends object>(part: P): P {
+  if (!("providerMetadata" in part) && !("callProviderMetadata" in part)) return part;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { providerMetadata, callProviderMetadata, ...rest } = part as P & {
+    providerMetadata?: unknown;
+    callProviderMetadata?: unknown;
+  };
+  return rest as P;
+}
+
 function textOf(message: Pick<UIMessage, "parts">): string {
   return message.parts
     .map((p) => (p.type === "text" && "text" in p ? String(p.text) : ""))
@@ -56,7 +72,7 @@ export function parseChatRequest(body: unknown): ParsedChatRequest {
   const messages = (parsed.data.messages as UIMessage[])
     // Never trust client-sent system messages: they could override the real prompt.
     .filter((m): m is UIMessage & { role: "user" | "assistant" } => m.role !== "system")
-    .map((m) => ({ ...m, parts: m.parts.filter((p) => ALLOWED_PARTS[m.role].has(p.type)) }))
+    .map((m) => ({ ...m, parts: m.parts.filter((p) => ALLOWED_PARTS[m.role].has(p.type)).map(stripProviderMetadata) }))
     .filter((m) => m.parts.length > 0);
 
   const last = messages.at(-1);

@@ -2,9 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // A plain stub rather than vi.fn: Vitest 5 reports a vi.fn's rejected promise
 // as a test failure even when the route catches it.
-let save: (h: unknown) => Promise<{ id: string }>;
+let save: (h: unknown, opts: { ip?: string }) => Promise<{ id: string }>;
 const saved: unknown[] = [];
-vi.mock("@/lib/handoff-store", () => ({ saveHandoff: (h: unknown) => save(h) }));
+vi.mock("@/lib/handoff-store", () => ({
+  saveHandoff: (h: unknown, opts: { ip?: string }) => save(h, opts),
+  HandoffRateLimitedError: class HandoffRateLimitedError extends Error {},
+}));
+const { HandoffRateLimitedError } = await import("@/lib/handoff-store");
 vi.mock("@/lib/log", () => ({ logEvent: () => {} }));
 
 const { POST } = await import("./route");
@@ -64,6 +68,23 @@ describe("POST /api/handoff", () => {
     const res = await post({ ...body, website: "http://spam.example" });
     expect(res.status).toBe(201);
     expect(saved).toHaveLength(0);
+  });
+
+  it("passes the client IP to the store and returns 429 when it's over the limit", async () => {
+    let seenIp: string | undefined;
+    save = async (_h, { ip }) => {
+      seenIp = ip;
+      throw new HandoffRateLimitedError();
+    };
+    const res = await POST(
+      new Request("http://test/api/handoff", {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers: { "x-forwarded-for": "203.0.113.7, 10.0.0.1" },
+      }),
+    );
+    expect(res.status).toBe(429);
+    expect(seenIp).toBe("203.0.113.7");
   });
 
   it("returns 503 with a safe message when the database fails", async () => {

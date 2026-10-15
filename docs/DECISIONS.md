@@ -86,11 +86,49 @@ One entry per meaningful architectural choice: what was chosen, what was rejecte
 - **Decision:** Each fact in `knowledge/*.md` carries its source as `<!-- src: … -->`. `loadKnowledge()` strips comments, and a unit test asserts the model-facing KB contains no URLs or emails.
 - **Why:** Facts stay traceable for maintainers and reviewers. The model never sees a raw link it could repeat (that's D3's guarantee, enforced by a test instead of by prompt wording), and the prompt is smaller.
 
+### D7: Prompt caching on the system prompt
+- **Context:** a usage probe showed `cacheReadTokens: 0`. Every turn re-sent the same ~6.9k-token prefix (tool definitions, rules and the KB) at full price. That prefix is about 90% of each turn's cost.
+- **Decision:** pass the prompt through AI SDK 7's `instructions` option (`system` is deprecated) as a system message with `providerOptions.openrouter.cacheControl: { type: "ephemeral" }`. Anthropic caches everything up to that breakpoint: the tools plus the system prompt.
+- **Result (measured):**
+
+  | Turn | Cost |
+  |---|---|
+  | No caching (before) | $0.00076 |
+  | First turn, writes the cache (1.25× input) | $0.00092 |
+  | Later turns within the ~5-minute TTL, read the cache (0.1× input) | **$0.00030** |
+
+  At steady traffic, the $5 covers about 15,000 turns, up from about 6,500.
+- **Trade-off:** a turn after 5 idle minutes pays the write premium (+22%). That's a net win at more than one turn per 5 minutes. Any edit to the prompt or KB invalidates the cache, which is expected.
+- **Also checked:** `reasoningTokens: 0`, so no hidden thinking is billed. The ~1.4 KB `reasoning_details` signature that OpenRouter attaches to each reply is stripped from replayed history (`chat-request.ts`), so it doesn't use up the history size cap.
+
+### D8: Rate limiting at the edge, plus a per-visitor cap on handoffs
+- **Context:** both endpoints are public. `/api/chat` spends the $5 LLM budget, and `/api/handoff` writes to the database.
+- **Decision:**
+  - **Edge:** a Vercel Firewall rule caps `POST /api/*` at **20 requests per 60 s per IP** (fixed window, returns 429). It runs before the function, so throttled requests cost nothing. The UI maps a 429 to "You're sending messages quickly…".
+  - **Handoffs:** at most **5 per 10 minutes per visitor**, checked in `saveHandoff()` against the table. The visitor is identified by an HMAC of the client IP, never the raw IP.
+  - **Backstop:** the OpenRouter key's hard $5 limit. In the worst case the bot stops answering (a defined error state). The bill can't grow.
+- **Why not more firewall rules:** the Hobby plan allows **one** rate-limit rule. We tried an hourly chat cap and a separate handoff rule, and the API refused them ("Rate limiting is not available for this plan"). So the one rule covers all POST routes, and the stricter handoff cap lives in code.
+- **Reproduce:**
+  ```
+  vercel firewall rules add "API POST limit" --condition '{"type":"path","op":"pre","value":"/api/"}' \
+    --condition '{"type":"method","op":"eq","value":"POST"}' --action rate_limit \
+    --rate-limit-requests 20 --rate-limit-window 60 --rate-limit-keys ip --yes
+  vercel firewall publish --yes
+  ```
+- **Trade-offs:**
+  - The handoff check is count-then-insert, so a burst of parallel requests can slip one or two over the cap. That's acceptable for spam control.
+  - The IP hash is keyed with the Supabase secret, so rotating that key resets the counts. That's harmless.
+  - Visitors behind one NAT (an office) share the 20/min limit, which is still far above human typing speed.
+  - IPv6 visitors are counted by their /64 prefix, since one client usually controls the whole block.
+- **Model-swap caveat (D7):** the stripped `reasoning_details` aren't needed for Haiku without thinking. If you enable reasoning or switch to Gemini, those providers need the signatures replayed, so remove the strip and allow `reasoning` parts.
+- **Revisit when:** on Pro, add an hourly per-IP chat cap (e.g. 120/hour), and consider a global daily spend alarm built on the `chat.turn` cost logs.
+
 ## Eval log
 | Date | SHA | Model | Pass rate | Cost | Notes |
 |---|---|---|---|---|---|
 | 2026-10-15 | (Phase 1–2) | claude-haiku-5.5 | 18/18 | $0.0140 | First run. p50 2.4 s, p95 3.0 s, about $0.00078/turn. Some "defers" phrases are lenient; tighten them once handoffs land |
 | 2026-10-15 | (Phase 3) | claude-haiku-5.5 | 19/20 → 20/20 | $0.0177 | Added `offer_handoff`, plus 2 cases and handoff expectations (required on escalations, forbidden on happy paths). The one failure was the scorer, not the bot: "aren't among the industries" wasn't in the phrase list. p50 2.1 s, p95 3.0 s, about $0.00084/turn. Re-run after the review fixes (generated topic list, clipped summary): 20/20, $0.0169 |
+| 2026-10-15 | (Phase 4) | claude-haiku-5.5 | 20/20 | $0.0055 | Prompt caching on (D7): one cache write ($0.00098), then about $0.00021 per turn, so the whole run cost 67% less. p50 2.1 s. p95 7.6 s comes from one outlier (`portal-login-problem`); every other case was under 3.5 s. Watch it, likely provider variance |
 
 ---
 

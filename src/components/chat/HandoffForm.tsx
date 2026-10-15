@@ -25,6 +25,7 @@ type State =
   | { kind: "unavailable"; message: string };
 
 const UNAVAILABLE = "We couldn't send that just now. You can try again, or email the team instead.";
+const RATE_LIMITED = "You've sent several requests already. Please email the team instead.";
 
 const input =
   "w-full rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 aria-[invalid=true]:border-red-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100";
@@ -70,6 +71,8 @@ export function HandoffForm({ offer }: { offer: HandoffOffer }) {
       if (res.status === 400 && body.fieldErrors) {
         return setState({ kind: "editing", fieldErrors: body.fieldErrors, message: body.message });
       }
+      // Over the handoff limit: retrying won't help for a while, so don't suggest it.
+      if (res.status === 429) return setState({ kind: "unavailable", message: RATE_LIMITED });
       setState({ kind: "unavailable", message: UNAVAILABLE });
     } catch {
       setState({ kind: "unavailable", message: UNAVAILABLE });
