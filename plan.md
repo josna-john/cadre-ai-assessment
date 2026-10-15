@@ -5,13 +5,13 @@ Source of truth for scope and sequencing, derived from [`docs/BRIEF.md`](docs/BR
 ## 1. Requirements checklist (quoted from the brief)
 | # | Requirement | Phase | Status |
 |---|---|---|---|
-| R1 | "a functional chatbot that a prospective or existing Cadre AI client could plausibly use to get answers" | 1 | [ ] |
-| R2 | "A prospective client asking what Cadre AI does and whether we work with their industry" | 2 | [ ] |
-| R3 | "Someone asking how to book a call with an AI strategist" | 3 | [ ] |
-| R4 | "A client asking how to access the Cadre portal to track their AI tools, agents, and results" | 2–3 | [ ] |
-| R5 | "A business leader asking what the AI Maturity Index is and how to get scored" | 2–3 | [ ] |
-| R6 | "Someone asking about Cadre's approach to LLM selection and data security" | 2 | [ ] |
-| R7 | "A user asking a question the bot can't answer — and needs to escalate or redirect" | 3 | [ ] |
+| R1 | "a functional chatbot that a prospective or existing Cadre AI client could plausibly use to get answers" | 1 | [x] |
+| R2 | "A prospective client asking what Cadre AI does and whether we work with their industry" | 2 | [x] |
+| R3 | "Someone asking how to book a call with an AI strategist" | 3 | [x] |
+| R4 | "A client asking how to access the Cadre portal to track their AI tools, agents, and results" | 2–3 | [x] |
+| R5 | "A business leader asking what the AI Maturity Index is and how to get scored" | 2–3 | [x] |
+| R6 | "Someone asking about Cadre's approach to LLM selection and data security" | 2 | [x] |
+| R7 | "A user asking a question the bot can't answer — and needs to escalate or redirect" | 3 | [~] redirect works; handoff in Phase 3 |
 | R8 | "A deployed, publicly accessible URL" | 0 | [x] |
 | R9 | "A CLAUDE.md at the root" / "A plan.md at the root" | 0 | [x] |
 | R10 | Zip of the project including `.git`, excluding dependency folders | 6 | [ ] |
@@ -85,9 +85,9 @@ flowchart LR
 | Phase | Goal | Done when |
 |---|---|---|
 | 0 | Plan, CLAUDE.md, OpenRouter wiring, health check | `/api/health/ai` is green on prod using the OpenRouter key |
-| 1 | Chat skeleton: streaming UI and `/api/chat` with a stub prompt | A prod user can chat |
-| 2 | Knowledge base (subagent research, human review), plus the system prompt | R2, R4–R6 answered from the KB, with sources |
-| 3 | Action buttons and handoff to Supabase | R3, R7 work end to end on prod |
+| 1 ✅ | Chat skeleton: streaming UI and `/api/chat`. Action buttons (`show_action`) were pulled forward from Phase 3 because the UI contract needed them | A prod user can chat |
+| 2 ✅ | Knowledge base (subagent research; human fact-check pending), plus the system prompt | R2, R4–R6 answered from the KB, with sources |
+| 3 | Structured handoff to Supabase (action buttons already shipped in Phase 1) | R3, R7 work end to end on prod |
 | 4 | Guardrails and failure states | Bad input, timeouts and refusals are handled in the UI |
-| 5 | Evals | `npm run eval` passes; results in `docs/DECISIONS.md` |
+| 5 (started) | Evals: 18 cases, all passing on the first run; they keep running in every later phase | `npm run eval` passes; results in `docs/DECISIONS.md` |
 | 6 | Docs, README, final checks, submission zip (fresh clone including `.git`) | Definition of done in CLAUDE.md is met |

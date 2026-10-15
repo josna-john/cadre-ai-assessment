@@ -1,36 +1,62 @@
-// Minimal eval harness: run each case through the system under test, score it,
-// and print a pass rate with latency. Run with `npm run eval`.
+// Runs every eval case through the production chat path (src/lib/chat.ts) and
+// scores the replies deterministically. Spends real budget (about $0.001 per
+// case), so run it deliberately: `npm run eval`, or `npm run eval -- <id-filter>`.
 //
-// Once the brief arrives: replace `runCase` with a call into the real feature
-// (import from src/lib, not over HTTP) and fill `cases.ts` with 10-20 cases
-// covering happy paths, edge cases, and inputs that should be refused.
-import { cases, type EvalCase } from "./cases";
+// Needs OPENROUTER_API_KEY. Run via `tsx --env-file=.env.local`.
+import type { UIMessage } from "ai";
+import type { ActionId } from "@/lib/actions";
+import { MODELS } from "@/lib/ai";
+import { streamChat, summarizeSteps } from "@/lib/chat";
+import { type EvalCase, cases } from "./cases";
 import { score } from "./score";
 
-async function runCase(c: EvalCase): Promise<string> {
-  // Placeholder system under test.
-  return c.input;
+function toMessages(input: EvalCase["input"]): UIMessage[] {
+  const turns = typeof input === "string" ? [{ role: "user" as const, text: input }] : input;
+  return turns.map((t, i) => ({ id: `m${i}`, role: t.role, parts: [{ type: "text", text: t.text }] }));
+}
+
+async function runCase(c: EvalCase) {
+  const started = Date.now();
+  const result = await streamChat(toMessages(c.input));
+  const [text, toolResults, steps] = await Promise.all([result.text, result.toolResults, result.steps]);
+  const actions = toolResults.flatMap((r) =>
+    r.toolName === "show_action" ? (r.output as { actions: { id: ActionId }[] }).actions.map((a) => a.id) : [],
+  );
+  return { text, actions, ms: Date.now() - started, ...summarizeSteps(steps) };
 }
 
 async function main() {
-  const results = [];
-  for (const c of cases) {
-    const started = Date.now();
-    let actual = "";
-    let error: string | undefined;
+  const filter = process.argv[2];
+  const selected = filter ? cases.filter((c) => c.id.includes(filter)) : cases;
+  console.log(`Running ${selected.length} case(s) against ${MODELS.chat}\n`);
+
+  const rows = [];
+  const failures: { id: string; reasons: string[]; text: string; actions: string[] }[] = [];
+
+  // Sequential on purpose: keeps latency numbers honest and is gentle on rate limits.
+  for (const c of selected) {
     try {
-      actual = await runCase(c);
+      const r = await runCase(c);
+      const reasons = score(c, r);
+      rows.push({ id: c.id, covers: c.covers, pass: reasons.length === 0 ? "✓" : "✗", ms: r.ms, costUsd: r.costUsd.toFixed(5), actions: r.actions.join(",") });
+      if (reasons.length) failures.push({ id: c.id, reasons, text: r.text, actions: r.actions });
     } catch (err) {
-      error = err instanceof Error ? err.message : String(err);
+      rows.push({ id: c.id, covers: c.covers, pass: "ERR", ms: 0, costUsd: "0", actions: "" });
+      failures.push({ id: c.id, reasons: [String(err)], text: "", actions: [] });
     }
-    const passed = !error && score(c, actual);
-    results.push({ id: c.id, passed, ms: Date.now() - started, error });
   }
 
-  console.table(results);
-  const passed = results.filter((r) => r.passed).length;
-  console.log(`\n${passed}/${results.length} passed`);
-  process.exitCode = passed === results.length ? 0 : 1;
+  console.table(rows);
+  for (const f of failures) {
+    console.log(`\n✗ ${f.id}\n  reasons: ${f.reasons.join("; ")}\n  actions: [${f.actions.join(", ")}]\n  reply: ${f.text}`);
+  }
+
+  const passed = rows.filter((r) => r.pass === "✓").length;
+  const latencies = rows.map((r) => r.ms).filter(Boolean).sort((a, b) => a - b);
+  const pct = (p: number) => latencies[Math.min(latencies.length - 1, Math.floor(p * latencies.length))] ?? 0;
+  const cost = rows.reduce((n, r) => n + Number(r.costUsd), 0);
+  console.log(`\n${passed}/${rows.length} passed · p50 ${pct(0.5)} ms · p95 ${pct(0.95)} ms · total $${cost.toFixed(4)}`);
+  process.exitCode = passed === rows.length ? 0 : 1;
 }
 
 main();

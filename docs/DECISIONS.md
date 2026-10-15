@@ -57,6 +57,26 @@ One entry per meaningful architectural choice: what was chosen, what was rejecte
   - Logging only: no durable record.
 - **Revisit when:** Cadre wants handoffs in their CRM (Salesforce/HubSpot). The handoff service is the single seam to change.
 
+### D5: Single-step tool calls (answer and buttons in one model call)
+- **Context:** With `stopWhen: isStepCount(2)`, Haiku wrote its answer, called `show_action`, then rewrote the whole answer after the tool result. Users saw the text twice, and each turn cost about $0.0014 (13k input tokens).
+- **Decision:**
+  - `isStepCount(1)`: the model writes the answer and calls `show_action` in the same response, then the stream ends.
+  - The prompt tells the model to put the full answer before the tool call.
+- **Result (measured locally):**
+  - No duplicate text.
+  - About 6.4k input tokens and $0.00077 per turn, 2.0–2.7 s.
+  - That's roughly 6,500 turns on the $5 budget.
+- **Trade-off:** the model can't react to a tool's result in the same turn. That's fine for `show_action`, which is pure presentation. A handoff tool that needs confirmation text would revisit this.
+
+### D6: Source URLs live in HTML comments, stripped before the prompt
+- **Decision:** Each fact in `knowledge/*.md` carries its source as `<!-- src: … -->`. `loadKnowledge()` strips comments, and a unit test asserts the model-facing KB contains no URLs or emails.
+- **Why:** Facts stay traceable for maintainers and reviewers. The model never sees a raw link it could repeat (that's D3's guarantee, enforced by a test instead of by prompt wording), and the prompt is smaller.
+
+## Eval log
+| Date | SHA | Model | Pass rate | Cost | Notes |
+|---|---|---|---|---|---|
+| 2026-10-15 | (Phase 1–2) | claude-haiku-5.5 | 18/18 | $0.0140 | First run. p50 2.4 s, p95 3.0 s, about $0.00078/turn. Some "defers" phrases are lenient; tighten them once handoffs land |
+
 ---
 
 ## Next steps & scaling

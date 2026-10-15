@@ -8,10 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "eval": "tsx evals/run.ts",
+    "eval": "tsx --env-file=.env.local evals/run.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/react": "^4.0.146",
     "@openrouter/ai-sdk-provider": "^3.1.0",
     "ai": "^7.0.140",
     "next": "16.4.1",
