@@ -88,6 +88,6 @@ flowchart LR
 | 1 ✅ | Chat skeleton: streaming UI and `/api/chat`. Action buttons (`show_action`) were pulled forward from Phase 3 because the UI contract needed them | A prod user can chat |
 | 2 ✅ | Knowledge base (subagent research; human fact-check done Oct 15), plus the system prompt | R2, R4–R6 answered from the KB, with sources |
 | 3 ✅ | Structured handoff to Supabase (action buttons already shipped in Phase 1). Verified on prod: offer → form → row saved, public key denied | R3, R7 work end to end on prod |
-| 4 | Guardrails and failure states | Bad input, timeouts and refusals are handled in the UI |
-| 5 (started) | Evals: 18 cases, all passing on the first run; they keep running in every later phase | `npm run eval` passes; results in `docs/DECISIONS.md` |
+| 4 ✅ | Guardrails and failure states: edge rate limit (D8), handoff cap, timeout → retryable error, 429 message, prompt caching (D7). Verified on prod: 429 after 20 POSTs/min | Bad input, timeouts and refusals are handled in the UI |
+| 5 ✅ | Evals: 20 cases (handoff expectations added in Phase 3), 20/20 on every run since; a full run costs about $0.006 with caching | `npm run eval` passes; results in `docs/DECISIONS.md` |
 | 6 | Docs, README, final checks, submission zip (fresh clone including `.git`) | Definition of done in CLAUDE.md is met |
