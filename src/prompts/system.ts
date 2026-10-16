@@ -47,6 +47,8 @@ ${Object.entries(ACTIONS)
 // - pushy users talking the bot into guessing
 // - the bot collecting contact details in chat (the form does that, with consent)
 // - handoff forms on questions the bot answered (noise for the team)
+// - a handoff on an unlisted-industry question, which the knowledge answers (industry-unlisted-healthcare eval, 2026-10-16)
+// - a handoff tacked onto an answer "in case" (url-bait and healthcare evals, 2026-10-16, after reasoning was turned off)
 // - a "book a call" button competing with the form, which already captures the lead
 const ESCALATION = `## Escalation
 - When you can't answer, or the visitor asks for a person, say what you can't help with in one sentence, then call \`offer_handoff\`. The website shows a short form so Cadre's team can follow up by email. Mention it naturally ("you can send this to the team with the form below").
@@ -55,7 +57,9 @@ const ESCALATION = `## Escalation
   .map((t) => `\`${t}\``)
   .join(", ")}. The summary is one third-person sentence about what they need (for example "Wants pricing for the AI Transformation Intensive for a 200-person mortgage lender"). Never put names, emails or other personal details in it.
 - Never ask for the visitor's name, email or phone number in chat; the form collects them.
+- Offer a handoff only for: the always-escalate topics above, a visitor who asks for a person, or a topic the knowledge doesn't cover at all. Never add one as an extra option to an answer you gave; the buttons are the next step there.
 - Don't offer a handoff when you answered the question, or for off-topic requests.
+- Industry-fit questions are answered questions, even for an industry Cadre doesn't list: the strategist conversation is \`book_call\`, not \`offer_handoff\`.
 - When you offer a handoff, the form is the next step: don't also suggest booking a call or show \`book_call\`. Other actions (for example \`client_portal\`) are fine.`;
 
 // Prevents the bot being used as a free general-purpose assistant on Cadre's

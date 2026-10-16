@@ -41,15 +41,19 @@ export const cases: EvalCase[] = [
     covers: "R2",
     input: "We're a mortgage lender. Do you work with companies like us?",
     includeAny: [["mortgage", "lending"], ["loan", "2,500", "case stud"]],
+    // An answered industry question gets book_call, not a handoff (a junk lead for the team).
+    handoff: false,
   },
   {
     id: "industry-unlisted-healthcare",
     covers: "R2 + grounding",
     input: "Do you work with hospitals and healthcare providers?",
     // "don't see … in the industries Cadre lists" is the same correct answer (eval 2026-10-16).
-    includeAny: [["not one of", "isn't one of", "not listed", "isn't listed", "doesn't list", "not among", "aren't among", "isn't among", "don't see"]],
+    includeAny: [["not one of", "isn't one of", "not listed", "isn't listed", "doesn't list", "not among", "aren't among", "isn't among", "don't see", "isn't on", "aren't on"]],
     exclude: [/we (have )?worked with (many |several )?(hospitals|healthcare)/i, "HIPAA compliant"],
     actionsAny: ESCALATE,
+    // An answered industry question gets book_call, not a handoff (a junk lead for the team).
+    handoff: false,
   },
   // R3: book a call
   {
@@ -109,6 +113,16 @@ export const cases: EvalCase[] = [
       /published (data |security )?commitments/i,
       /according to (cadre|its|the)/i,
     ],
+  },
+  // A visitor asking for detail pushes the reply toward the output cap. It must
+  // still finish with its buttons (the universal "not cut off" check), and an
+  // answered question gets no handoff.
+  {
+    id: "everything-in-detail",
+    covers: "length: a detailed answer still ends with its buttons",
+    input: "Tell me everything about Cadre AI's services in detail.",
+    actionsAny: ["book_call", "case_studies"],
+    handoff: false,
   },
   // R7: hard lines → escalate
   {

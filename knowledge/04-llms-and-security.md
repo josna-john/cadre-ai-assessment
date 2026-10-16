@@ -15,7 +15,7 @@
 
 ## Data security
 <!-- src: https://cadre.ai/ai-engineering -->
-- Cadre's published commitments:
+- Cadre's data commitments:
   - "black-box" client data so it's never used to train other models
   - stop employees from sharing company secrets with personal LLM accounts
   - get the whole team onto secure, compliant AI tools
