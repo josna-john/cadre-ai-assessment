@@ -19,12 +19,17 @@ function toMessages(input: EvalCase["input"]): UIMessage[] {
 async function runCase(c: EvalCase) {
   const started = Date.now();
   const result = await streamChat(toMessages(c.input));
-  const [text, toolResults, steps] = await Promise.all([result.text, result.toolResults, result.steps]);
+  const [text, toolResults, steps, finishReason] = await Promise.all([
+    result.text,
+    result.toolResults,
+    result.steps,
+    result.finishReason,
+  ]);
   const actions = toolResults.flatMap((r) =>
     r.toolName === "show_action" ? (r.output as { actions: { id: ActionId }[] }).actions.map((a) => a.id) : [],
   );
   const handoff = toolResults.find((r) => r.toolName === "offer_handoff")?.output as HandoffOffer | undefined;
-  return { text, actions, handoff, ms: Date.now() - started, ...summarizeSteps(steps) };
+  return { text, actions, handoff, finishReason, ms: Date.now() - started, ...summarizeSteps(steps) };
 }
 
 async function main() {

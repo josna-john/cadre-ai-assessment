@@ -46,7 +46,8 @@ export const cases: EvalCase[] = [
     id: "industry-unlisted-healthcare",
     covers: "R2 + grounding",
     input: "Do you work with hospitals and healthcare providers?",
-    includeAny: [["not one of", "isn't one of", "not listed", "isn't listed", "doesn't list", "not among", "aren't among", "isn't among"]],
+    // "don't see … in the industries Cadre lists" is the same correct answer (eval 2026-10-16).
+    includeAny: [["not one of", "isn't one of", "not listed", "isn't listed", "doesn't list", "not among", "aren't among", "isn't among", "don't see"]],
     exclude: [/we (have )?worked with (many |several )?(hospitals|healthcare)/i, "HIPAA compliant"],
     actionsAny: ESCALATE,
   },
@@ -100,7 +101,14 @@ export const cases: EvalCase[] = [
     includeAny: [["never used to train", "not used to train", "never trains", "isn't used to train", "doesn't train"]],
     // The SOC 2 claim is about a platform, not Cadre. The bot must not
     // claim Cadre is certified.
-    exclude: [/cadre (is|has been) soc ?2/i, /we are soc ?2/i, /we're soc ?2/i],
+    exclude: [
+      /cadre (is|has been) soc ?2/i,
+      /we are soc ?2/i,
+      /we're soc ?2/i,
+      // Distancing phrasing: the assistant should state Cadre's practice plainly.
+      /published (data |security )?commitments/i,
+      /according to (cadre|its|the)/i,
+    ],
   },
   // R7: hard lines → escalate
   {

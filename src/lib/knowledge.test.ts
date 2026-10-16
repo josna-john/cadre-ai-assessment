@@ -17,6 +17,15 @@ describe("knowledge", () => {
     expect(kb).not.toMatch(/[\w.]+@[\w-]+\.\w+/);
   });
 
+  it("gives the model no email or phone number anywhere in the full prompt", () => {
+    // The KB check above missed the button labels the prompt adds ("Email
+    // hello@gocadre.ai"), and the model copied one into a reply.
+    const prompt = buildSystemPrompt(loadKnowledge());
+    expect(prompt).not.toMatch(/[\w.+-]+@[\w-]+\.\w+/);
+    expect(prompt).not.toMatch(/\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}/);
+    expect(prompt).not.toMatch(/https?:\/\//);
+  });
+
   it("keeps the system prompt within a sane token budget", () => {
     // Rough estimate at ~4 chars/token. A tripwire against accidentally
     // dumping huge content into every request.

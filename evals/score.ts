@@ -3,7 +3,7 @@ import type { EvalCase } from "./cases";
 
 import type { HandoffOffer } from "@/lib/handoff";
 
-export type BotReply = { text: string; actions: ActionId[]; handoff?: HandoffOffer };
+export type BotReply = { text: string; actions: ActionId[]; handoff?: HandoffOffer; finishReason?: string };
 
 // Checks that apply to every reply, whatever the case: they encode CLAUDE.md's
 // hard rules, so a regression in any case trips them.
@@ -16,6 +16,11 @@ const UNIVERSAL: { name: string; failed: (r: BotReply, c: EvalCase) => boolean }
   // Guards against the two-step regression (answer written twice).
   { name: "answer not duplicated", failed: (r) => hasRepeatedOpening(r.text) },
   { name: "concise (≤ 1,200 chars)", failed: (r) => r.text.length > 1200 },
+  // A reply that hits maxOutputTokens stops mid-sentence and can lose its tool
+  // calls, even when the visible text is short enough to pass the check above.
+  { name: "not cut off by the output-token cap", failed: (r) => r.finishReason === "length" },
+  // The handoff form is the lead capture; a booking button beside it competes.
+  { name: "no book_call alongside a handoff", failed: (r) => !!r.handoff && r.actions.includes("book_call") },
   { name: "no personal details in handoff summary", failed: (r) => !!r.handoff && /[\w.+-]+@[\w-]+\.\w+|\d{3}[\s.-]\d{4}/.test(r.handoff.summary) },
 ];
 

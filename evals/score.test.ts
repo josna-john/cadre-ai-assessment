@@ -54,4 +54,9 @@ describe("score", () => {
     const leaky = { ...offer, summary: "Ada (ada@example.com) wants pricing." };
     expect(score(base, { text: ok, actions: [], handoff: leaky })).toEqual(["no personal details in handoff summary"]);
   });
+
+  it("fails a reply cut off by the output-token cap, however short its text", () => {
+    expect(score(base, { text: ok, actions: [], finishReason: "length" })).toEqual(["not cut off by the output-token cap"]);
+    expect(score(base, { text: ok, actions: [], finishReason: "tool-calls" })).toEqual([]);
+  });
 });

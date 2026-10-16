@@ -18,9 +18,16 @@ export type ModelKey = keyof typeof MODELS;
 const openrouter = createOpenRouter();
 
 export function model(key: ModelKey) {
-  // usage.include asks OpenRouter to return the real dollar cost of each call,
-  // so logs record spend instead of an estimate from token counts.
-  return openrouter(MODELS[key], { usage: { include: true } });
+  return openrouter(MODELS[key], {
+    // usage.include asks OpenRouter to return the real dollar cost of each call,
+    // so logs record spend instead of an estimate from token counts.
+    usage: { include: true },
+    // Haiku 5.5 reasons by default, and hidden reasoning counts against
+    // maxOutputTokens. On the data-security question it used 421 of 600 tokens
+    // thinking, so the reply hit the cap before its tool call. Grounded lookup
+    // from a fixed KB doesn't need it; the eval set is the check. See D9.
+    extraBody: { reasoning: { enabled: false } },
+  });
 }
 
 // Dollar cost reported by OpenRouter for a call, if present.
