@@ -99,6 +99,12 @@ One entry per meaningful architectural choice: what was chosen, what was rejecte
 
   At steady traffic, the $5 covers about 15,000 turns, up from about 6,500.
 - **Trade-off:** a turn after 5 idle minutes pays the write premium (+22%). That's a net win at more than one turn per 5 minutes. Any edit to the prompt or KB invalidates the cache, which is expected.
+- **Stopped turns (added 2026-10-16):** a turn stopped by the visitor (Stop, New chat) or by the timeout never gets the final usage chunk, so it logged `costUsd: 0` although the input and the tokens streamed so far are billed. OpenRouter's per-generation lookup (`/api/v1/generation`) returns "not found" on this account, even for completed turns, so the exact figure isn't available. `chat.aborted` now logs an estimate labelled `costSource: "estimate_upper_bound"`:
+  - Input is counted from the prompt, history and tool definitions sent, at a calibrated 2.7 chars/token. A probe measured 6,965 estimated against 7,044 real.
+  - Output is counted from the characters streamed before the stop.
+  - The input is priced as a cache write, the most expensive case, so budget tracking errs high.
+
+  Prices live next to the model ID in `src/lib/ai.ts` (`CHAT_PRICING`) and must change with it.
 - **Also checked:** `reasoningTokens: 0`, so no hidden thinking is billed. The ~1.4 KB `reasoning_details` signature that OpenRouter attaches to each reply is stripped from replayed history (`chat-request.ts`), so it doesn't use up the history size cap.
 
 ### D8: Rate limiting at the edge, plus a per-visitor cap on handoffs

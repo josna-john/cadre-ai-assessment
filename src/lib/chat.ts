@@ -1,5 +1,5 @@
-import { convertToModelMessages, isStepCount, smoothStream, streamText, type UIMessage } from "ai";
-import { MODELS, costUsd, model } from "./ai";
+import { asSchema, convertToModelMessages, isStepCount, smoothStream, streamText, type UIMessage } from "ai";
+import { MODELS, costUsd, estimateStoppedTurn, model } from "./ai";
 import { loadKnowledge } from "./knowledge";
 import { LIMITS } from "./limits";
 import { logEvent } from "./log";
@@ -24,6 +24,19 @@ export function summarizeSteps(steps: readonly Step[]) {
   };
 }
 
+// Size of the tool definitions sent with every turn (constant per deploy).
+let toolChars: number | undefined;
+function toolDefinitionChars(): number {
+  toolChars ??= JSON.stringify(
+    Object.entries(chatTools).map(([name, t]) => ({
+      name,
+      description: t.description,
+      schema: asSchema(t.inputSchema as Parameters<typeof asSchema>[0]).jsonSchema,
+    })),
+  ).length;
+  return toolChars;
+}
+
 // One chat turn: prompt + capped history → streaming model call. Shared by the
 // API route and the eval runner, so evals exercise the production path.
 // Throws only if the history can't be converted (the caller maps that to a 400).
@@ -38,12 +51,15 @@ export async function streamChat(
   });
 
   const base = { model: MODELS.chat, historyMessages: messages.length };
+  const system = buildSystemPrompt(loadKnowledge());
+  // Characters streamed so far, for estimating a stopped turn's cost.
+  let replyChars = 0;
 
   return streamText({
     model: model("chat"),
     instructions: {
       role: "system",
-      content: buildSystemPrompt(loadKnowledge()),
+      content: system,
       // The prompt (tools + rules + KB, about 6.9k tokens) is identical on
       // every turn, so mark it cacheable. Anthropic caches everything up to
       // this breakpoint; cache reads cost a tenth of normal input. See D7.
@@ -69,14 +85,31 @@ export async function streamChat(
         ...summarizeSteps(event.steps),
       });
     },
-    // onEnd doesn't fire on abort (user pressed Stop, or the timeout fired),
-    // but those turns are still billed. Log what was spent.
+    onChunk: ({ chunk }) => {
+      if (chunk.type === "text-delta") replyChars += chunk.text.length;
+      else if (chunk.type === "tool-input-delta") replyChars += chunk.delta.length;
+    },
+    // onEnd doesn't fire on abort (user pressed Stop or New chat, or the
+    // timeout fired), but those turns are still billed. With one step (D5) a
+    // stopped turn has no completed step, so no usage report and a reported
+    // cost of 0. Log an upper-bound estimate instead, labelled as such
+    // (OpenRouter's per-generation lookup returns "not found" on this account).
     onAbort: (event) => {
+      const reported = summarizeSteps(event.steps);
+      const estimate = event.steps.length
+        ? undefined
+        : estimateStoppedTurn({
+            promptChars: system.length + toolDefinitionChars() + JSON.stringify(modelMessages).length,
+            replyChars,
+          });
       logEvent("chat.aborted", {
         ...base,
         latencyMs: Date.now() - startedAt,
         reason: String(event.reason ?? "aborted"),
-        ...summarizeSteps(event.steps),
+        ...reported,
+        ...estimate,
+        costSource: estimate ? "estimate_upper_bound" : "openrouter",
+        replyChars,
       });
     },
   });

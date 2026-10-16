@@ -30,6 +30,29 @@ export function model(key: ModelKey) {
   });
 }
 
+// Per-token USD prices for MODELS.chat, from OpenRouter's /api/v1/models
+// (2026-10-16). Only used to estimate stopped turns, which never receive a
+// usage report. Update together with MODELS.chat.
+export const CHAT_PRICING = { input: 1e-7, cacheWrite: 1.25e-7, cacheRead: 1e-8, output: 5e-7 } as const;
+
+// Characters per token, calibrated against a real turn: the markdown- and
+// JSON-heavy prompt is ~2.7 chars/token (6,874 tokens for ~18.7k chars);
+// plain reply text is ~4.
+const PROMPT_CHARS_PER_TOKEN = 2.7;
+const REPLY_CHARS_PER_TOKEN = 4;
+
+// What a stopped turn probably cost. A stopped stream never gets the final
+// usage chunk, so its reported cost is 0 even though the input and the tokens
+// generated so far are billed. This is an upper bound: it prices the input as
+// a cache write (the most expensive case), since whether the cache was warm is
+// unknown. It's meant for budget tracking, so it errs high.
+export function estimateStoppedTurn({ promptChars, replyChars }: { promptChars: number; replyChars: number }) {
+  const inputTokens = Math.ceil(promptChars / PROMPT_CHARS_PER_TOKEN);
+  const outputTokens = Math.ceil(replyChars / REPLY_CHARS_PER_TOKEN);
+  const costUsd = inputTokens * CHAT_PRICING.cacheWrite + outputTokens * CHAT_PRICING.output;
+  return { inputTokens, outputTokens, costUsd };
+}
+
 // Dollar cost reported by OpenRouter for a call, if present.
 export function costUsd(providerMetadata: unknown): number | undefined {
   const cost = (providerMetadata as { openrouter?: { usage?: { cost?: unknown } } })
