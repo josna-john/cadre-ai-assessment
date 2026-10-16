@@ -54,3 +54,6 @@ CLAUDE.local.md
 
 # local browser-testing artifacts
 /.playwright-mcp/
+
+# supabase CLI cache
+/supabase/.temp/

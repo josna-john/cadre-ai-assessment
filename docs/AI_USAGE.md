@@ -3,8 +3,10 @@
 A running log of how AI tools were used to build this project, with concrete examples of what worked and what had to be corrected.
 
 ## Tools
-- **Claude Code** (Opus 5.5): planning, scaffolding, implementation, tests, docs
-- _others_
+- **Claude Code** (Opus 5.5): planning, scaffolding, implementation, tests, docs, and infra through the Vercel, Supabase and GitHub CLIs
+- **Claude Code subagents**: parallel KB research and UI build, and pre-commit code review (see Workflow)
+- **Playwright** (driven by Claude Code): checking the UI in a real browser against the live model
+- **Claude Haiku 5.5**: the chatbot itself (not used for development)
 
 ## Workflow
 - `CLAUDE.md` is onboarding for a fast but context-limited developer:
@@ -29,6 +31,7 @@ A running log of how AI tools were used to build this project, with concrete exa
 | When | Task | What AI did | What I changed / verified myself |
 |---|---|---|---|
 | Oct 14 | Project setup | Drafted CLAUDE.md, the doc skeletons, and the git repo | Supplied the context, reviewed the structure |
+| Oct 14 | AI pipeline smoke test | Built `/api/health/ai` (structured output + usage) and deployed it before any feature work. It surfaced two blockers on day 0: the gateway needed a card on file, then the free tier excluded current Claude models | Added billing and $10 paid credit. Kept current models rather than downgrading to save $10 |
 | Oct 14 | GitHub + Vercel setup | Scaffolded Next.js 16, created the public repo, linked Vercel, deployed. Caught Vercel re-adding `.env*` to .gitignore, which would have hidden .env.example | Logged into Vercel and GitHub, installed the Vercel GitHub app |
 | Oct 15 | Brief → plan | Read the brief and turned it into `plan.md` (requirements table, product boundaries, phases). Asked me to decide deadline, knowledge source, escalation design and model | Made the four calls, then had the plan walked through a second time before approving |
 | Oct 15 | KB research | Ran a background subagent over cadre.ai (sitemap, service pages, portal, case studies) while planning continued. It found there is no booking calendar (all CTAs go to the contact form) and no public pricing, which changed the action design | Will review every fact against its source page before it enters `knowledge/` |
@@ -36,7 +39,8 @@ A running log of how AI tools were used to build this project, with concrete exa
 | Oct 15 | Chat UI (parallel) | A background subagent built `src/components/chat/*` against a written contract (`src/lib/actions.ts`, `src/lib/limits.ts`, the error JSON shape) while the main session wrote the route, KB and prompt. It reported where AI SDK 7 differed from the contract (the error shape) and fixed a Next 16 prerender failure (a random chat ID under Cache Components) | Reviewed its report, then verified the UI end to end in a real browser (Playwright) against the live model |
 | Oct 15 | Chat route + KB | Checked the installed AI SDK 7 type definitions before writing the route, and found `onFinish` is deprecated in favour of `onEnd`. Wrote the KB from the research subagent's notes, leaving out everything marked UNVERIFIED | |
 | Oct 15 | Handoff (Phase 3) | Loaded the Vercel Marketplace and Supabase agent skills before writing code. Provisioned Supabase from the CLI (terms needed one browser click), wrote the migration with RLS on and grants revoked, then built the two-step handoff (model offers, visitor submits). Verified it against the real DB: a row is saved, the publishable key is denied, and the test rows are deleted | Questioned why a table was needed when Cadre already has a contact form. That led to D4 being rewritten around context, routing and the CRM swap point. Accepted the Supabase terms |
-| Oct 14 | AI pipeline smoke test | Built `/api/health/ai` (structured output + usage) and deployed it before any feature work. It surfaced two blockers on day 0: the gateway needed a card on file, then the free tier excluded current Claude models | Added billing and $10 paid credit. Kept current models rather than downgrading to save $10 |
+| Oct 15 | Guardrails (Phase 4) | Probed real usage and found prompt caching off, then turned it on (D7). Found and fixed the blank-reply timeout. Added the firewall rule and the handoff cap, and checked both on prod by sending requests until they blocked | Ran the KB fact-check against the source pages, and tested the bot by hand with a list of tricky questions |
+| Oct 16 | Docs + submission (Phase 6) | Wrote the README, next steps and this section. Scanned the full git history for secrets, and built the submission zip from a fresh clone | Reviewed the docs and ran the final prod checks in an incognito window |
 
 ## Where AI fell short / what I had to correct
 - **Oct 15:** the Vercel MCP connector was authenticated to a different account and returned 403 on the project's team. We switched to the Vercel CLI, which was logged in to the right account. Lesson: check which identity a tool runs as before writing to infra.
@@ -78,4 +82,8 @@ A running log of how AI tools were used to build this project, with concrete exa
 - **Oct 15:** a second and third firewall rate-limit rule were refused by the Hobby plan. The design was changed to one edge rule plus a database-backed handoff cap (D8), rather than adding a new service.
 
 ## What I'd do differently
-- 
+- **Probe real model behaviour on day one, not just types.** The three most expensive bugs (duplicate answers, caching silently off, the blank timeout bubble) all passed typecheck and unit tests. Each was found within minutes of looking at real usage numbers or a real stream. Next time, a one-call usage probe and a forced-failure test go in with the first route.
+- **Run the reviewer subagent earlier and on smaller diffs.** It found 22 real issues across three reviews, and the large ones would have been cheaper to catch per feature than per phase.
+- **Check platform limits before designing around them.** The rate-limit design assumed several firewall rules. Reading the plan limits first would have led straight to the final design (one edge rule plus a cap in code).
+- **Use the editor tool, never in-place scripts, for file edits.** One truncated file and a few silent no-op replacements (CRLF line endings) cost more time than they saved.
+- **Keep the AI's research separate from the facts.** The research subagent's notes were good, but some were paraphrased. Keeping facts in `knowledge/` with a source on every line, plus a human check, is what made "no invented facts" credible. I'd keep that process and add an automated freshness check.

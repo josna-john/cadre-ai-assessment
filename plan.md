@@ -14,7 +14,7 @@ Source of truth for scope and sequencing, derived from [`docs/BRIEF.md`](docs/BR
 | R7 | "A user asking a question the bot can't answer — and needs to escalate or redirect" | 3 | [x] redirect via actions, plus a consented handoff form saved to Supabase (D4) |
 | R8 | "A deployed, publicly accessible URL" | 0 | [x] |
 | R9 | "A CLAUDE.md at the root" / "A plan.md at the root" | 0 | [x] |
-| R10 | Zip of the project including `.git`, excluding dependency folders | 6 | [ ] |
+| R10 | Zip of the project including `.git`, excluding dependency folders | 6 | [x] built from a fresh `git clone`, so only tracked files ship |
 | R11 | Chatbot LLM runs through the provided OpenRouter key ($5 budget) | 0 | [x] |
 
 ## 2. Product decisions (what the bot knows, and where it draws the line)
@@ -30,7 +30,7 @@ Source of truth for scope and sequencing, derived from [`docs/BRIEF.md`](docs/BR
   - `maturity_index` opens `portal.gocadre.ai/ai-maturity-index`.
   - `client_portal` opens `portal.gocadre.ai`.
   - `email_team` opens `hello@gocadre.ai`.
-- **Escalation is a structured handoff:** with the user's consent, the bot collects name, email and company, and writes a summary. A tool call validates it with zod and saves it to Supabase, so the inbound team gets a real lead instead of a dead end.
+- **Escalation is a structured handoff:** the bot tags the topic and writes a one-line summary, and the visitor fills in a short form (name, email, optional company and note). The submission is validated with zod and saved to Supabase, so the inbound team gets a real lead instead of a dead end. *(Changed during Phase 3: the original plan had the bot collect contact details in chat. See D4 for why the form is better.)*
 
 ## 3. Assumptions and open questions
 - Gaps the public site doesn't cover all become handoff topics, not guesses:
@@ -53,7 +53,7 @@ Source of truth for scope and sequencing, derived from [`docs/BRIEF.md`](docs/BR
 6. An eval set of about 15–20 cases covering every scenario, the hard lines and injection attempts, with results recorded.
 7. Structured logs per request: latency, tokens, cost, model, and tool calls.
 
-**Stretch (only after the MVP is deployed and evals pass):**
+**Stretch (only after the MVP is deployed and evals pass):** none shipped. Time went into guardrails, prompt caching and evals instead. Each item is covered in "Next steps & scaling" in `docs/DECISIONS.md`.
 - An `/admin` inbox listing handoffs, protected by a simple password.
 - A Slack or email notification when a handoff is created.
 - Persisted conversation analytics: top intents and the escalation rate.
@@ -70,7 +70,8 @@ flowchart LR
   API --> P[Prompt builder<br/>system rules + KB markdown]
   API -->|streamText| OR[OpenRouter<br/>claude-haiku-5.5]
   OR -->|tool: show_action| UI
-  OR -->|tool: request_handoff| H[Handoff service<br/>zod-validated]
+  OR -->|tool: offer_handoff| UI
+  UI -->|visitor submits form<br/>POST /api/handoff| H[Handoff route<br/>zod · honeypot · rate cap]
   H --> DB[(Supabase<br/>handoffs)]
   API --> L[Structured logs<br/>latency · tokens · cost]
 ```
@@ -78,8 +79,8 @@ flowchart LR
 - `src/prompts/`: the system prompt, with comments explaining each rule.
 - `knowledge/*.md`: KB files with source URLs, loaded into the prompt at build time.
 - `src/lib/actions.ts`: the action enum and URL map (deterministic).
-- `src/lib/handoff.ts`: the zod schema and Supabase insert.
-- **Data model:** `handoffs(id, created_at, name, email, company, topic, summary, transcript_excerpt, status)`.
+- `src/lib/handoff.ts`: the zod schemas, shared with the browser. `src/lib/handoff-store.ts`: the server-only Supabase insert.
+- **Data model:** `handoffs(id, created_at, status, topic, summary, name, email, company, note, transcript, ip_hash)` (see `supabase/migrations/`).
 
 ## 6. Phases
 | Phase | Goal | Done when |
@@ -90,4 +91,4 @@ flowchart LR
 | 3 ✅ | Structured handoff to Supabase (action buttons already shipped in Phase 1). Verified on prod: offer → form → row saved, public key denied | R3, R7 work end to end on prod |
 | 4 ✅ | Guardrails and failure states: edge rate limit (D8), handoff cap, timeout → retryable error, 429 message, prompt caching (D7). Verified on prod: 429 after 20 POSTs/min | Bad input, timeouts and refusals are handled in the UI |
 | 5 ✅ | Evals: 20 cases (handoff expectations added in Phase 3), 20/20 on every run since; a full run costs about $0.006 with caching | `npm run eval` passes; results in `docs/DECISIONS.md` |
-| 6 | Docs, README, final checks, submission zip (fresh clone including `.git`) | Definition of done in CLAUDE.md is met |
+| 6 ✅ | Docs, README, final checks, submission zip (fresh clone including `.git`) | Definition of done in CLAUDE.md is met |

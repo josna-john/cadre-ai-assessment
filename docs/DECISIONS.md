@@ -60,7 +60,7 @@ One entry per meaningful architectural choice: what was chosen, what was rejecte
   - The table has RLS on with no policies, and grants are revoked from `anon` and `authenticated`. Only the server's secret key can read or write it. Verified: the publishable key gets `permission denied`.
   - Logs carry the handoff id and topic only, never contact details.
   - A honeypot field silently drops basic bots.
-  - Rate limiting comes in Phase 4.
+  - Rate limited: 5 submissions per 10 minutes per visitor, plus the edge rule (D8).
   - The transcript comes from the browser, so it's visitor-supplied context, not proof of what the bot said.
   - Requests over 32 KB are refused before parsing. Strings that Postgres would reject (NUL characters, half an emoji) are caught or cleaned in validation, so they come back as a 400 rather than a 503.
 - **Out of scope:** notifying anyone. Rows land in the table and nothing emails the team. So the confirmation says "We've passed your question to Cadre's team" and makes no promise about a reply.
@@ -133,9 +133,37 @@ One entry per meaningful architectural choice: what was chosen, what was rejecte
 ---
 
 ## Next steps & scaling
-Updated during the build.
-- **Reliability:** 
-- **Scale / cost:** 
-- **Quality / evals:** 
-- **Security / data privacy:** 
-- **Rollout / adoption:** 
+What I would do next to take this from a working prototype to something Cadre runs in production, roughly in priority order.
+
+**1. Close the loop on handoffs (the most business value)**
+- Replace the Supabase insert in `saveHandoff()` with Cadre's CRM (HubSpot or Salesforce). Create a contact plus a ticket or deal tagged with the topic, so handoffs land where the inbound team already works.
+- Notify on create: a Slack message or email per handoff, routed by topic (`pricing` → sales, `security_compliance` → the security owner, `portal_access` → client success).
+- Once someone owns the queue, the confirmation can promise a response time, which it deliberately doesn't today.
+
+**2. Reliability and observability**
+- Ship the structured logs (`chat.turn`, `chat.error`, `handoff.*`) to a log drain with alerts on error rate, p95 latency and daily spend. The cost data is already in every log line.
+- Add a provider fallback. OpenRouter can route to a second provider for the same model, or the code can fall back to a second model ID in `src/lib/ai.ts`, so a provider outage becomes a slower answer instead of an error.
+- Run `/api/health/ai` from an uptime monitor every few minutes.
+
+**3. Cost and scale**
+- At about $0.0003 per cached turn, 10,000 conversations of 4 turns cost about $12. Cost isn't the constraint; abuse is.
+- On a paid plan: an hourly per-IP cap on chat, a global daily spend circuit breaker (stop accepting chats and show "email the team" once spend crosses a threshold), and BotID on the chat endpoint.
+- Keep the KB in the prompt until it passes about 30–50k tokens, or Cadre wants private or per-client documents. Then move to retrieval (pgvector in the same Supabase project) with access control.
+
+**4. Quality**
+- Run the eval set in CI on every PR that touches `src/prompts/`, `knowledge/` or `src/lib/ai.ts`, and block merges on regressions.
+- Turn real traffic into evals. Handoff topics and summaries show where the KB has gaps. Review them weekly, add facts through `/kb-add` with a human check, and add each new failure mode as an eval case.
+- Use the same eval set to compare models (Haiku vs Sonnet vs a non-Anthropic model) on pass rate, latency and cost. The model is one string, so this is cheap to do.
+- Add an LLM-as-judge score for tone and helpfulness alongside the deterministic checks, sampled to control cost.
+- Keep the KB fresh: a scheduled job that re-fetches the source URLs in `knowledge/` and flags pages that changed.
+
+**5. Security and data privacy**
+- Set a retention policy for handoff rows and transcripts (e.g. delete after 90 days, or once synced to the CRM), and document it in a privacy notice next to the form.
+- The handoff transcript comes from the browser, so it's context, not a record. If it has to be authoritative, store conversations server-side keyed by a session ID and attach the server copy instead.
+- Use a dedicated HMAC secret for IP hashing instead of reusing the Supabase key, and rotate secrets on a schedule.
+- If Cadre's security posture requires it, run Claude via Bedrock or Vertex in Cadre's own cloud account. The provider is isolated in `src/lib/ai.ts`.
+
+**6. Rollout and product**
+- Embed as a widget on cadre.ai (a small `<script>` loading the chat in an iframe), first on low-traffic pages, then site-wide.
+- Measure: deflection (conversations without a handoff), handoff rate by topic, CTA click-through to the contact form and Maturity Index, and visitor thumbs up or down per answer.
+- For existing clients, authenticate through the portal so the bot can answer account-specific questions (project status, agents deployed) with per-client data access, instead of routing every such question to a person.
