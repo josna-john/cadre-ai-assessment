@@ -20,7 +20,7 @@ export function isActionsOutput(output: unknown): output is { actions: ResolvedA
 export function ActionButtons({ actions }: { actions: ResolvedAction[] }) {
   if (actions.length === 0) return null;
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex animate-rise flex-wrap gap-2">
       {actions.map((action) => {
         const external = action.href.startsWith("http");
         return (
@@ -28,7 +28,7 @@ export function ActionButtons({ actions }: { actions: ResolvedAction[] }) {
             key={action.id}
             href={action.href}
             {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-            className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3.5 py-1.5 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:border-indigo-400/30 dark:bg-indigo-400/10 dark:text-indigo-200 dark:hover:bg-indigo-400/20"
+            className="inline-flex items-center gap-1.5 rounded-full bg-cadre-blue px-4 py-3 text-sm sm:py-2 tracking-[-0.14px] text-white transition-colors hover:bg-cadre-blue-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cadre-blue"
           >
             {action.label}
             <span aria-hidden="true">{external ? "↗" : "→"}</span>
@@ -44,7 +44,7 @@ export function ActionPlaceholder() {
   return (
     <div
       aria-hidden="true"
-      className="h-8 w-40 animate-pulse rounded-full bg-zinc-200 dark:bg-zinc-800"
+      className="h-8 w-40 animate-pulse rounded-full bg-ink/5"
     />
   );
 }

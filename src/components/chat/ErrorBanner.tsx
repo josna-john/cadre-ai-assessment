@@ -10,10 +10,10 @@ export function ErrorBanner({
   return (
     <div
       role="alert"
-      className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-400/30 dark:bg-red-950/40 dark:text-red-100"
+      className="rounded-card border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900"
     >
       <p className="font-medium">{message}</p>
-      <p className="mt-1 text-red-800/80 dark:text-red-200/80">
+      <p className="mt-1 text-red-800/80">
         You can also reach the team at{" "}
         <a
           href="mailto:hello@gocadre.ai"
@@ -26,7 +26,7 @@ export function ErrorBanner({
         <button
           type="button"
           onClick={onRetry}
-          className="mt-3 rounded-lg border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-800 hover:bg-red-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 dark:border-red-400/40 dark:bg-transparent dark:text-red-100 dark:hover:bg-red-400/10"
+          className="mt-3 rounded-full border border-red-300 bg-white px-4 py-1.5 text-sm font-medium text-red-800 transition-colors hover:bg-red-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
         >
           Try again
         </button>

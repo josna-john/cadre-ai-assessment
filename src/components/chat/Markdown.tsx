@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 
 // A deliberately tiny markdown subset for assistant replies: paragraphs,
 // **bold**, and bullet / numbered lists. Everything is rendered as React text
@@ -47,15 +47,30 @@ function parseBlocks(text: string): Block[] {
   return blocks;
 }
 
+// Wraps each word in a span that fades in when it mounts. Keys are positional,
+// so as text streams in only the new words mount (and animate); earlier words
+// keep their DOM nodes and stay still.
+function fadeWords(text: string): ReactNode[] {
+  return text.split(/(\s+)/).map((token, i) =>
+    !token || /^\s+$/.test(token) ? (
+      token
+    ) : (
+      <span key={i} className="animate-word">
+        {token}
+      </span>
+    ),
+  );
+}
+
 // Splits on **bold** spans. An unclosed ** (common mid-stream) stays literal.
 function renderInline(text: string): ReactNode[] {
   return text.split(/(\*\*[^*]+\*\*)/g).map((chunk, i) =>
     chunk.startsWith("**") && chunk.endsWith("**") && chunk.length > 4 ? (
       <strong key={i} className="font-semibold">
-        {chunk.slice(2, -2)}
+        {fadeWords(chunk.slice(2, -2))}
       </strong>
     ) : (
-      chunk
+      <Fragment key={i}>{fadeWords(chunk)}</Fragment>
     ),
   );
 }

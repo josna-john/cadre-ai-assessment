@@ -1,26 +1,103 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Design tokens taken from cadre.ai's stylesheet so the assistant reads as part
+   of the same site: sand page, near-black ink, hairline borders, soft card
+   shadows and pill-shaped CTAs. Cadre's site is light-only. */
+@theme {
+  /* Cadre's --cadre-sand / --cadre-sand-dark: the warm base of every surface. */
+  --color-sand: #faf9f6;
+  --color-sand-dark: #f2efe4;
+  --color-ink: #0c0407;
+  --color-ink-800: #333333;
+  --color-ink-600: #666666;
+  --color-ink-400: #999999;
+  --color-hairline: #0000001a;
+  --color-card-hover: #fffdf6;
+  /* Cadre's --cadre-blue, used only for things you can click (plus one headline word). */
+  --color-cadre-blue: #08749b;
+  --color-cadre-blue-dark: #065c7b;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --radius-card: 1.25rem;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  --shadow-card: 0 28px 32px #00000008;
+  --shadow-pill:
+    inset 0 -1.2px #dcdcdc4d, 0 2.6px 2.6px #dcd4c73d, 0 0.87px 1.74px #dcd4c799,
+    0 0 0 0.87px #e9e9e9;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-inter-tight), var(--font-inter), sans-serif;
+  --font-brand: var(--font-poppins), sans-serif;
+
+  /* Cadre's --wf-ease-out-expo: fast start, long soft landing. */
+  --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+
+  --animate-rise: rise 0.7s var(--ease-out-expo) both;
+  --animate-word: word-in 0.45s ease-out both;
+  --animate-wave: wave 1.8s ease-in-out 0.5s both;
+
+  /* Messages, cards and buttons slide up a few pixels as they appear. */
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Each streamed word fades in out of a slight blur instead of popping in. */
+  @keyframes word-in {
+    from {
+      opacity: 0;
+      filter: blur(3px);
+    }
+    to {
+      opacity: 1;
+      filter: none;
+    }
+  }
+
+  @keyframes wave {
+    0%,
+    60%,
+    100% {
+      transform: rotate(0);
+    }
+    10%,
+    30% {
+      transform: rotate(14deg);
+    }
+    20% {
+      transform: rotate(-8deg);
+    }
+    40% {
+      transform: rotate(-4deg);
+    }
+    50% {
+      transform: rotate(10deg);
+    }
   }
 }
 
+:root {
+  color-scheme: light;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  background: var(--color-sand);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* People who ask their OS for less motion get the static version of everything. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

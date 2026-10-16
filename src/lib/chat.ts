@@ -1,4 +1,4 @@
-import { convertToModelMessages, isStepCount, streamText, type UIMessage } from "ai";
+import { convertToModelMessages, isStepCount, smoothStream, streamText, type UIMessage } from "ai";
 import { MODELS, costUsd, model } from "./ai";
 import { loadKnowledge } from "./knowledge";
 import { LIMITS } from "./limits";
@@ -55,6 +55,9 @@ export async function streamChat(
     // response, then the stream ends. With two steps, Haiku re-wrote the whole
     // answer after the tool result (duplicate text at double the cost). See D5.
     stopWhen: isStepCount(1),
+    // The provider sends text in uneven bursts. Re-chunk it into single words
+    // at a steady pace so the reply reads as it types instead of jumping.
+    experimental_transform: smoothStream({ chunking: "word", delayInMs: 12 }),
     maxOutputTokens: LIMITS.maxOutputTokens,
     timeout: { totalMs: LIMITS.requestTimeoutMs },
     abortSignal,
