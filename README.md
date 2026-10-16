@@ -7,7 +7,7 @@ A public customer-support chatbot for [Cadre AI](https://cadre.ai). It answers c
 ## What it does
 Prospects, existing clients and curious visitors ask the same handful of questions: what Cadre does, whether it works in their industry, how to book a call, how to reach the client portal, what the AI Maturity Index is, and how Cadre handles model choice and data security. The bot answers these **only** from `knowledge/`, a hand-reviewed set of facts taken from Cadre's public site, with a source URL on every fact.
 
-Where the public site is silent (pricing, how portal access is granted, how the Maturity Index is scored, Cadre's own certifications, anything about a specific account), the bot says so instead of guessing. It then offers a short handoff form. The visitor types their own name and email, and the request is saved with a topic tag, a one-line summary and the recent transcript, so the team gets a routed lead with context instead of a cold "contact us".
+Where the public site is silent (pricing, how portal access is granted, how the Maturity Index is scored, Cadre's own certifications, anything about a specific account), the bot says so instead of guessing. It then offers a short handoff form. The visitor fills in the same details as Cadre's own contact form (name, company, work email, optional phone), and the request is saved with a topic tag, a one-line summary and the recent transcript, so the team gets a routed lead with context instead of a cold "contact us".
 
 | Try asking | What happens |
 |---|---|

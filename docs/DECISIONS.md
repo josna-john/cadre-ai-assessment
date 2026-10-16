@@ -50,7 +50,7 @@ One entry per meaningful architectural choice: what was chosen, what was rejecte
 - **Context:** "A user asking a question the bot can't answer — and needs to escalate or redirect." Cadre's site already has a contact form, and the bot links to it (`book_call`). But sending a visitor there means they leave the chat, retype their question, and the team gets a cold note with no context or routing.
 - **Decision:** a two-step handoff where the model never touches contact details.
   1. The model calls `offer_handoff` with a topic from a fixed enum (`pricing`, `security_compliance`, `portal_access`, `account_specific`, `partnership_legal`, `other`) and a one-sentence, third-person summary. The UI renders a short form. Nothing is saved yet.
-  2. The visitor types their own name and email and clicks send. `POST /api/handoff` validates with zod, with no LLM involved, and saves to a Supabase `handoffs` table along with the last 10 turns of transcript.
+  2. The visitor types their own contact details (name and email at first; the full lead form in D10) and clicks send. `POST /api/handoff` validates with zod, with no LLM involved, and saves to a Supabase `handoffs` table along with the last 10 turns of transcript.
 - **Why this shape:**
   - Consent is an explicit click, not the model's reading of "sure".
   - The model can't mistype or invent an email address.
