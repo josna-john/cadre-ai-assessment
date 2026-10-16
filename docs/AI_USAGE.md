@@ -89,6 +89,7 @@ A running log of how AI tools were used to build this project, with concrete exa
   - A shortened suggestion was still too long for a phone. Measuring every suggestion against the real text width found three that didn't fit.
 
   Both were caught by checking in the browser, not by tests.
+- **Oct 16:** while verifying a logging fix on prod, the logs showed two `chat.error` entries nobody had seen. Tracing them found replies that hit the output cap mid-tool-call and left placeholders pulsing forever (D12). Turning reasoning off (D9) had also made the model add handoffs "in case". Part of that came from two KB lines whose wording the model copied ("offer a handoff or `book_call`", "Cadre's published commitments"). The `eval-triager` subagent's diagnosis was checked against the prompt before applying it. Each fix was then confirmed by rerunning the flaky case several times, not with one lucky pass. Lesson: read the production logs after every ship, not just the smoke-test status codes.
 - **Oct 16:** the Turbopack dev server stopped compiling newly used Tailwind classes after hot reload, so new styles came out invisible (for example, white text with no background), and a `git stash` round-trip left it serving stale CSS. It was caught each time by checking the served CSS for the class, and fixed by a clean restart. Production builds were unaffected: each change was also verified with `next build`.
 
 ## What I'd do differently

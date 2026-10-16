@@ -173,6 +173,28 @@ One entry per meaningful architectural choice: what was chosen, what was rejecte
 - **Trade-off:** more required fields mean slightly more friction than name and email alone. Accepted, because a handoff that sales can't act on has little value, and the fields match what Cadre already asks for.
 - **Revisit when:** the CRM swap (D4). Map these fields straight onto the CRM contact.
 
+### D12: Replies that end mid-tool-call, and when to offer a handoff
+- **Context:**
+  - On prod, "Tell me everything about Cadre AI's services in detail" hit the 600-token output cap (`finishReason: length`) while its tool calls were streaming.
+  - The SDK doesn't run tools in a step that ends on the cap. The visitor saw "use the buttons below" over loading placeholders that pulsed forever. The two `chat.error` logs (`show_action` with `{}`) were the same thing.
+  - It reproduced in 1 of 3 tries.
+- **Decision:**
+  - **UI fallback** (`MessagePart.tsx`). Once a reply has finished, a tool call that never ran falls back to something real:
+    - a complete `show_action` input becomes its buttons (ids checked against the same allowlist);
+    - a complete `offer_handoff` input becomes the form (validated and clipped as the tool would);
+    - a cut-off handoff gets the direct-contact fallback.
+
+    Placeholders only show while streaming. Verified in a browser with a temporary 150-token cap: no placeholder survived the end of a reply.
+  - **Output cap 600 → 800.** It gives detailed answers room for their tool calls. The worst case is about $0.0001 more per turn.
+  - **Eval case `everything-in-detail`.** It is guarded by the universal "not cut off" check.
+- **Handoff triggers, tightened.** With reasoning off (D9), the model sometimes added a handoff "in case" to answers it had given: healthcare fit, and contact links in `url-bait`. That paired the form with `book_call`, so the UI hid a button the text promised. Fixes:
+  - The prompt now lists the only reasons for a handoff (always-escalate topics, a request for a person, a topic the KB doesn't cover) and says industry-fit questions are answered (`book_call`).
+  - Two KB lines read as instructions to hedge, so their wording changed (no facts changed, flagged for human review). "For pricing, offer a handoff or the `book_call` action" became "offer a handoff… don't add `book_call` beside it". The "Cadre's published commitments:" label became "Cadre's data commitments:", because the model echoed it ("Cadre's published commitments are…").
+  - The industry cases now assert `handoff: false`.
+  - Reruns: healthcare 4/4, `url-bait` 4/4, pricing 8/8, data-security 4/4.
+- **Known flake:** on explicit "in detail" requests, about 1 in 5 replies exceeds the 1,200-char conciseness check. It always ends with its buttons. The check is kept strict rather than loosened, because it's a real (minor) style miss.
+- **Revisit when:** detailed answers become common. Then consider a "summary + offer to go deeper" pattern enforced by a second check, or a higher cap with a reason.
+
 ### D11: Streaming is smoothed server-side and faded in client-side
 - **Context:** the provider streams text in uneven bursts, so replies jumped in several words at a time.
 - **Decision:**
@@ -193,6 +215,7 @@ One entry per meaningful architectural choice: what was chosen, what was rejecte
 | 2026-10-16 | (pre-29c8025) | claude-haiku-5.5 | 19/20 | $0.0056 | Style rules (under about 120 words, no "published commitments" hedging), no `book_call` beside a handoff, and a new check that fails any reply cut off by the cap. `data-security` failed it: 421 of 600 output tokens were hidden reasoning (D9) |
 | 2026-10-16 | (pre-29c8025) | claude-haiku-5.5 | 19/20 | $0.0038 | Reasoning off (D9). `data-security` now finishes with its handoff, and p50 fell from 2.3 s to 1.9 s. `url-bait` regressed: it copied the email from the `email_team` label in the prompt. Triaged by `eval-triager` |
 | 2026-10-16 | 29c8025 | claude-haiku-5.5 | 19/20 → 20/20 | $0.0044 → $0.0037 | Labels stripped of contact details in the prompt, plus a unit test on the full prompt. `url-bait` passes, and pricing no longer pairs `book_call` with the form. The one failure was the scorer: "I don't see healthcare … in the industries Cadre lists" is correct but wasn't in the phrase list, so "don't see" was added. Final: p50 2.0 s, p95 3.2 s |
+| 2026-10-16 | b4f1a23 + D12 changes | claude-haiku-5.5 | 19/21 → 20/21 | about $0.03 incl. reruns | Output cap 800, tool-call fallbacks, new `everything-in-detail` case (D12). Handoff drift after reasoning-off (healthcare, `url-bait`, pricing) traced to prompt gaps and two KB lines that read as hedges; fixed and rerun 4–8× each, all passing. "aren't on"/"isn't on" added to the healthcare phrase list (correct answer, strict scorer). Final: 20/21; the one miss is the known ~1-in-5 over-length "in detail" reply, which still ends with its buttons. p50 1.7 s, p95 3.1 s |
 
 ---
 
