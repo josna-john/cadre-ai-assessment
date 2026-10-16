@@ -123,12 +123,64 @@ One entry per meaningful architectural choice: what was chosen, what was rejecte
 - **Model-swap caveat (D7):** the stripped `reasoning_details` aren't needed for Haiku without thinking. If you enable reasoning or switch to Gemini, those providers need the signatures replayed, so remove the strip and allow `reasoning` parts.
 - **Revisit when:** on Pro, add an hourly per-IP chat cap (e.g. 120/hour), and consider a global daily spend alarm built on the `chat.turn` cost logs.
 
+### D9: Hidden reasoning off for the chat model
+- **Context:**
+  - The `data-security` eval hit the 600-token output cap (`finishReason: length`) and lost its tool call, even though its visible text was only 94 words.
+  - A usage probe showed why: **421 of the 600 output tokens were `reasoningTokens`**, against 179 text tokens.
+  - D7 had recorded `reasoningTokens: 0` on 2026-10-15. So Haiku 5.5 either now reasons by default through OpenRouter, or reasons only on some questions.
+- **Decision:** `extraBody: { reasoning: { enabled: false } }` on the model in `src/lib/ai.ts`.
+- **Why:**
+  - The job is grounded lookup from a fixed, in-prompt KB. It doesn't need multi-step thinking.
+  - Reasoning tokens are billed as output and were most of the output cost of that turn.
+  - They also count toward `maxOutputTokens`, so they can silently cut off replies.
+- **Result (measured, full eval):**
+
+  | | Reasoning on | Reasoning off |
+  |---|---|---|
+  | Typical reply time (p50) | 2.3 s | 1.9–2.0 s |
+  | Run cost | $0.0056 | $0.0037–0.0044 |
+  | `data-security` | cut off | finishes, with its handoff |
+
+- **What it exposed:** with reasoning off, `url-bait` copied "hello@gocadre.ai" into its reply. The cause was the prompt itself: it listed the `email_team` button label ("Email hello@gocadre.ai") right after the "never write emails" rule. Labels are now stripped of emails and phone numbers before they reach the prompt, and a unit test asserts the **full** built prompt has no email, phone number or URL (D6's test only covered the KB).
+- **Guardrails added:** a universal eval check fails any reply cut off by the output cap, whatever its text length.
+- **Alternatives considered:**
+  - Raise `maxOutputTokens`: it treats the symptom, raises the cost per turn, and leaves latency high.
+  - Cap reasoning at a token budget: a middle ground, but the evals show no quality loss with it fully off.
+- **Revisit when:** evals show reasoning-shaped failures (multi-constraint questions answered wrongly). If reasoning goes back on, see D8's note on replaying `reasoning_details`.
+
+### D10: The handoff form is a complete lead, matching Cadre's contact form
+- **Context:**
+  - Cadre's own form (cadre.ai/contact) requires first name, last name, company name, work email and a message, and has an optional phone field.
+  - The original handoff form (D4) asked only for name and email. So a handoff wasn't a usable lead, and a prospect could end up filling in both forms.
+  - Replies often showed a "Talk to an AI strategist" button right under the form: two ways to reach the same team.
+- **Decision:**
+  - The form now collects the same fields as Cadre's contact form, with the same required set, marked with a red \* as on cadre.ai.
+  - The model's third-person summary stands in for the "How can we help you?" message. It's shown read-only as "What we'll send the team", because as an editable field the visitor would read it as their own words. "Anything to add?" stays optional.
+  - When a reply offers a handoff, the prompt says not to also show `book_call`. The UI drops it as a deterministic backstop, and an eval check enforces it. The header CTA stays as the always-available route.
+- **Schema:** additive migration (`20261016190000_handoffs_lead_fields.sql`) with nullable `first_name`, `last_name` and `phone` columns. `name` keeps "first last", so code deployed before the migration and existing rows keep working. Required fields are enforced in zod, not with `NOT NULL`, for the same reason.
+- **Trade-off:** more required fields mean slightly more friction than name and email alone. Accepted, because a handoff that sales can't act on has little value, and the fields match what Cadre already asks for.
+- **Revisit when:** the CRM swap (D4). Map these fields straight onto the CRM contact.
+
+### D11: Streaming is smoothed server-side and faded in client-side
+- **Context:** the provider streams text in uneven bursts, so replies jumped in several words at a time.
+- **Decision:**
+  - `experimental_transform: smoothStream({ chunking: "word", delayInMs: 12 })` in `streamChat`, so text leaves the server one word at a time at a steady pace.
+  - In the browser, `Markdown.tsx` wraps each word in a span that fades in on mount. Keys are positional, so only new words animate.
+  - Everything respects `prefers-reduced-motion`.
+- **Measured:** a 121-word reply arrived with a median gap of 17 ms between words and no bursts, in about 2.1 s.
+- **Trade-off:** the smoothing adds up to about 12 ms per word when the model is faster than that pace, which is about 1–2 s on a long reply. It's covered by the existing timeout and has no token cost. Evals run the same path.
+- **Revisit when:** replies get much longer, or latency becomes the complaint. Lower `delayInMs`, or chunk by line.
+
 ## Eval log
 | Date | SHA | Model | Pass rate | Cost | Notes |
 |---|---|---|---|---|---|
 | 2026-10-15 | (Phase 1–2) | claude-haiku-5.5 | 18/18 | $0.0140 | First run. p50 2.4 s, p95 3.0 s, about $0.00078/turn. Some "defers" phrases are lenient; tighten them once handoffs land |
 | 2026-10-15 | (Phase 3) | claude-haiku-5.5 | 19/20 → 20/20 | $0.0177 | Added `offer_handoff`, plus 2 cases and handoff expectations (required on escalations, forbidden on happy paths). The one failure was the scorer, not the bot: "aren't among the industries" wasn't in the phrase list. p50 2.1 s, p95 3.0 s, about $0.00084/turn. Re-run after the review fixes (generated topic list, clipped summary): 20/20, $0.0169 |
 | 2026-10-15 | (Phase 4) | claude-haiku-5.5 | 20/20 | $0.0055 | Prompt caching on (D7): one cache write ($0.00098), then about $0.00021 per turn, so the whole run cost 67% less. p50 2.1 s. p95 7.6 s comes from one outlier (`portal-login-problem`); every other case was under 3.5 s. Watch it, likely provider variance |
+| 2026-10-16 | (pre-29c8025) | claude-haiku-5.5 | 20/20 | $0.0047 | System prompt now names the bot "Ask Cadre"; `smoothStream` re-chunks output word by word (12 ms). Prompt cache warm on every turn, about $0.00023/turn. p50 2.4 s, p95 3.9 s. `data-security` passed but hit the 600-token output cap (`finishReason: length`, no tool call), so that reply is likely cut off. Follow up: tighten the answer or raise the cap with a reason |
+| 2026-10-16 | (pre-29c8025) | claude-haiku-5.5 | 19/20 | $0.0056 | Style rules (under about 120 words, no "published commitments" hedging), no `book_call` beside a handoff, and a new check that fails any reply cut off by the cap. `data-security` failed it: 421 of 600 output tokens were hidden reasoning (D9) |
+| 2026-10-16 | (pre-29c8025) | claude-haiku-5.5 | 19/20 | $0.0038 | Reasoning off (D9). `data-security` now finishes with its handoff, and p50 fell from 2.3 s to 1.9 s. `url-bait` regressed: it copied the email from the `email_team` label in the prompt. Triaged by `eval-triager` |
+| 2026-10-16 | 29c8025 | claude-haiku-5.5 | 19/20 → 20/20 | $0.0044 → $0.0037 | Labels stripped of contact details in the prompt, plus a unit test on the full prompt. `url-bait` passes, and pricing no longer pairs `book_call` with the form. The one failure was the scorer: "I don't see healthcare … in the industries Cadre lists" is correct but wasn't in the phrase list, so "don't see" was added. Final: p50 2.0 s, p95 3.2 s |
 
 ---
 
