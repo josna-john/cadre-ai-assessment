@@ -16,8 +16,10 @@ const { POST } = await import("./route");
 const body = {
   topic: "security_compliance",
   summary: "Needs Cadre's SOC 2 report for a vendor review.",
-  name: "Ada",
+  firstName: "Ada",
+  lastName: "Lovelace",
   email: "ada@example.com",
+  company: "Analytical Engines Ltd",
   transcript: [{ role: "user", text: "Can you send your SOC 2 report?" }],
 };
 const post = (b: unknown) =>
@@ -43,6 +45,13 @@ describe("POST /api/handoff", () => {
     const res = await post({ ...body, email: "nope" });
     expect(res.status).toBe(400);
     expect((await res.json()).fieldErrors.email).toBeTruthy();
+    expect(saved).toHaveLength(0);
+  });
+
+  it("highlights a missing company, which the lead form now requires", async () => {
+    const res = await post({ ...body, company: "" });
+    expect(res.status).toBe(400);
+    expect((await res.json()).fieldErrors.company).toBeTruthy();
     expect(saved).toHaveLength(0);
   });
 

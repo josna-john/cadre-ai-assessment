@@ -11,15 +11,17 @@ const res = await fetch(`${base}/api/handoff`, {
   body: JSON.stringify({
     topic: "pricing",
     summary: `Automated check ${marker}`,
-    name: "Test Runner",
+    firstName: "Test",
+    lastName: "Runner",
     email: "test@example.com",
+    company: "Verify Script",
     transcript: [{ role: "user", text: "How much does it cost?" }],
   }),
 });
 console.log("POST status:", res.status, await res.text());
 
 const admin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, { auth: { persistSession: false } });
-const { data: rows, error } = await admin.from("handoffs").select("id, topic, status, summary").eq("summary", `Automated check ${marker}`);
+const { data: rows, error } = await admin.from("handoffs").select("id, topic, status, summary, first_name, last_name, name, company").eq("summary", `Automated check ${marker}`);
 console.log("server key sees:", error ?? rows);
 
 const pub = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, { auth: { persistSession: false } });

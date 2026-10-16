@@ -4,7 +4,7 @@ import { z } from "zod";
 // touches the first:
 // 1. The model calls `offer_handoff` with a topic and a one-line summary. The
 //    UI renders a form; nothing is saved yet.
-// 2. The visitor fills in their own name and email and submits. That POST
+// 2. The visitor fills in their own contact details and submits. That POST
 //    (/api/handoff) is validated here and saved by src/lib/handoff-store.ts.
 // So consent is an explicit click, and contact details never pass through
 // the model.
@@ -73,12 +73,23 @@ const optionalText = (max: number) =>
     .optional()
     .transform((v) => (v ? v : undefined));
 
-// What the visitor submits.
+const requiredText = (max: number, missing: string) =>
+  z.string().trim().min(1, missing).max(max).refine(noNul, UNSUPPORTED);
+
+// Digits plus the usual separators; anything else is a typo or junk.
+const PHONE = /^\+?[\d\s().-]{7,40}$/;
+
+// What the visitor submits. Required fields mirror Cadre's own contact form
+// (cadre.ai/contact: first and last name, company, work email), so a handoff
+// is a complete lead and nobody has to fill that form in again. The model's
+// summary stands in for its "How can we help you?" message.
 export const handoffSubmissionSchema = handoffOfferSchema.extend({
   summary: handoffOfferSchema.shape.summary.refine(noNul),
-  name: z.string().trim().min(1, "Please enter your name.").max(100).refine(noNul, UNSUPPORTED),
+  firstName: requiredText(50, "Please enter your first name."),
+  lastName: requiredText(50, "Please enter your last name."),
   email: z.email("Please enter a valid email address.").max(254),
-  company: optionalText(200),
+  company: requiredText(200, "Please enter your company name."),
+  phone: optionalText(40).refine((v) => !v || PHONE.test(v), "Please enter a valid phone number."),
   note: optionalText(1000),
   transcript: z
     .array(
@@ -96,7 +107,8 @@ export type HandoffSubmission = z.infer<typeof handoffSubmissionSchema>;
 
 // Fields a person types, so the form can highlight them. Errors anywhere else
 // mean the request itself is broken, and retrying won't help.
-export const HANDOFF_FORM_FIELDS = ["name", "email", "company", "note"] as const;
+export const HANDOFF_FORM_FIELDS = ["firstName", "lastName", "email", "company", "phone", "note"] as const;
+export type HandoffFormField = (typeof HANDOFF_FORM_FIELDS)[number];
 
 // The last few turns as plain text, for the team's context. Shared by the
 // form (to build the request) and tests. It's visitor-supplied, so the team

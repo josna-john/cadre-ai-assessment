@@ -11,24 +11,32 @@ import {
 const valid = {
   topic: "pricing",
   summary: "Wants pricing for the AI Transformation Intensive.",
-  name: "  Ada Lovelace ",
+  firstName: "  Ada ",
+  lastName: "Lovelace",
   email: "ada@example.com",
-  company: "",
+  company: "Analytical Engines Ltd",
+  phone: "",
   transcript: [{ role: "user", text: "How much is the Intensive?" }],
 };
 
 describe("handoffSubmissionSchema", () => {
   it("accepts a valid submission, trims, and drops empty optional fields", () => {
     const r = handoffSubmissionSchema.parse(valid);
-    expect(r.name).toBe("Ada Lovelace");
-    expect(r.company).toBeUndefined();
+    expect(r.firstName).toBe("Ada");
+    expect(r.phone).toBeUndefined();
   });
 
-  it("rejects a bad email and a missing name with field-level messages", () => {
-    const r = handoffSubmissionSchema.safeParse({ ...valid, email: "not-an-email", name: " " });
+  it("requires what cadre.ai/contact requires: first and last name, company, email", () => {
+    const r = handoffSubmissionSchema.safeParse({ ...valid, email: "not-an-email", firstName: " ", lastName: "", company: " " });
     expect(r.success).toBe(false);
     const fields = r.error?.issues.map((i) => i.path[0]);
-    expect(fields).toEqual(expect.arrayContaining(["email", "name"]));
+    expect(fields).toEqual(expect.arrayContaining(["email", "firstName", "lastName", "company"]));
+  });
+
+  it("accepts a normal phone number and rejects junk", () => {
+    expect(handoffSubmissionSchema.safeParse({ ...valid, phone: "+1 (619) 555-0100" }).success).toBe(true);
+    const bad = handoffSubmissionSchema.safeParse({ ...valid, phone: "call me maybe" });
+    expect(bad.error?.issues.map((i) => i.path[0])).toEqual(["phone"]);
   });
 
   it("rejects topics outside the enum (the model can't invent a queue)", () => {
@@ -80,6 +88,6 @@ describe("clipSummary", () => {
 
 describe("handoffSubmissionSchema NUL handling", () => {
   it("rejects NUL characters that Postgres would refuse", () => {
-    expect(handoffSubmissionSchema.safeParse({ ...valid, name: "Ada\0" }).success).toBe(false);
+    expect(handoffSubmissionSchema.safeParse({ ...valid, firstName: "Ada\0" }).success).toBe(false);
   });
 });

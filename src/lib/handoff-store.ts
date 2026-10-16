@@ -68,9 +68,13 @@ export async function saveHandoff(
     .insert({
       topic: h.topic,
       summary: h.summary,
-      name: h.name,
+      first_name: h.firstName,
+      last_name: h.lastName,
+      // Full name too, so triage views and anything reading `name` keep working.
+      name: `${h.firstName} ${h.lastName}`,
       email: h.email,
-      company: h.company ?? null,
+      company: h.company,
+      phone: h.phone ?? null,
       note: h.note ?? null,
       transcript: h.transcript,
       ip_hash: ipHash,

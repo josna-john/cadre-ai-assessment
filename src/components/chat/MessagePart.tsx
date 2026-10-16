@@ -7,7 +7,20 @@ type Part = UIMessage["parts"][number];
 
 // One case per part type we render. Adding a tool is a new
 // `case "tool-<name>"`; unknown parts render nothing.
-export function MessagePart({ part, role }: { part: Part; role: UIMessage["role"] }) {
+//
+// `hasHandoff`: this reply also shows the handoff form. The form is the lead
+// capture, so a "Talk to an AI strategist" button beside it would be a second,
+// competing way to reach the same team. The prompt asks the model not to pair
+// them; this is the deterministic backstop.
+export function MessagePart({
+  part,
+  role,
+  hasHandoff = false,
+}: {
+  part: Part;
+  role: UIMessage["role"];
+  hasHandoff?: boolean;
+}) {
   switch (part.type) {
     case "text":
       // User text is shown verbatim; only assistant text gets markdown.
@@ -20,7 +33,9 @@ export function MessagePart({ part, role }: { part: Part; role: UIMessage["role"
     case "tool-show_action":
       if (part.state === "output-available") {
         return isActionsOutput(part.output) ? (
-          <ActionButtons actions={part.output.actions} />
+          <ActionButtons
+            actions={hasHandoff ? part.output.actions.filter((a) => a.id !== "book_call") : part.output.actions}
+          />
         ) : null;
       }
       if (part.state === "input-streaming" || part.state === "input-available") {
