@@ -1,8 +1,10 @@
 import {
+  AsYouType,
   getCountries,
   getCountryCallingCode,
   isValidPhoneNumber,
   parsePhoneNumberFromString,
+  validatePhoneNumberLength,
   type CountryCode,
 } from "libphonenumber-js/max";
 
@@ -39,12 +41,38 @@ export function parsePhone(input: string, country: CountryCode) {
         e164: parsed.number,
         country: parsed.country,
         valid: parsed.isValid(),
-        // For display beside the dial-code box: international spacing minus
-        // the "+44", so no national trunk prefix ("+44 | 20 7946 0958", not
-        // "+44 | 020 7946 0958").
-        display: parsed.formatInternational().replace(/^\+\d+\s*/, ""),
+        display: formatDigits(parsed.nationalNumber, parsed.country ?? country),
       }
     : undefined;
+}
+
+export const digitsOf = (s: string) => s.replace(/\D/g, "");
+
+// Format the digits typed so far in the country's style, for the box beside
+// the dial code: "(619) 555-0100" in the US, "98765 43210" in India. Some
+// countries (UK, Germany) only format nationally when the number starts with
+// the trunk "0"; without it the national formatter returns bare digits, so
+// fall back to international grouping minus the "+44" ("20 7946 0958").
+export function formatDigits(digits: string, country: CountryCode): string {
+  if (!digits) return "";
+  const national = new AsYouType(country).input(digits);
+  if (/\D/.test(national) || digits.length <= 3) return national;
+  return new AsYouType().input(`${dialCode(country)}${digits}`).replace(/^\+\d+\s*/, "");
+}
+
+// Whether these digits are already past the longest number the country allows
+// (including its trunk prefix, e.g. a leading 0 in the UK or 1 in the US). With
+// `international`, the digits start with their own calling code.
+export function isTooLong(digits: string, country: CountryCode, international: boolean): boolean {
+  return (
+    validatePhoneNumberLength(international ? `+${digits}` : digits, international ? undefined : country) ===
+    "TOO_LONG"
+  );
+}
+
+// A number typed with its own "+" code: formatted internationally as typed.
+export function formatInternational(text: string): string {
+  return new AsYouType().input(text);
 }
 
 // Server-side check on the E.164 value the form submits.

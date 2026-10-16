@@ -1,10 +1,29 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { INVALID_PHONE } from "@/lib/handoff";
-import { DEFAULT_COUNTRY, countryOptions, dialCode, parsePhone, type CountryCode } from "@/lib/phone";
+import {
+  DEFAULT_COUNTRY,
+  countryOptions,
+  dialCode,
+  digitsOf,
+  formatDigits,
+  formatInternational,
+  isTooLong,
+  parsePhone,
+  type CountryCode,
+} from "@/lib/phone";
 
 export type PhoneValue = { value: string; error?: string };
+
+// The caret position just after the n-th digit of a formatted number. Starts
+// after a leading "+": with no digits yet, position 0 would put the next digit
+// in front of it.
+function caretAfterDigits(value: string, n: number): number {
+  let pos = value.startsWith("+") ? 1 : 0;
+  for (let seen = 0; pos < value.length && seen < n; pos++) if (/\d/.test(value[pos])) seen++;
+  return pos;
+}
 
 // Country picker plus number, like cadre.ai/contact. Loaded lazily by
 // HandoffForm, so the ~145 KB of numbering rules (src/lib/phone.ts) only
@@ -41,30 +60,101 @@ export default function PhoneField({
     onChange(
       parsed?.valid
         ? { value: parsed.e164 }
-        : { value: parsed?.e164 ?? `${dialCode(c)}${text.replace(/\D/g, "")}`, error: INVALID_PHONE },
+        : { value: parsed?.e164 ?? `${dialCode(c)}${digitsOf(text)}`, error: INVALID_PHONE },
     );
   };
 
-  const changeNumber = (text: string) => {
-    setNational(text);
-    // A pasted international number picks its own country.
-    const parsed = text.trim().startsWith("+") ? parsePhone(text, country) : undefined;
-    const c = parsed?.country ?? country;
+  // Formatting as you type rewrites the value, which would throw the caret to
+  // the end. Remember how many digits sat before the caret, and put it back
+  // after that many digits once the formatted value has rendered.
+  const inputRef = useRef<HTMLInputElement>(null);
+  const caretDigits = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const el = inputRef.current;
+    const n = caretDigits.current;
+    caretDigits.current = null;
+    if (n === null || !el || document.activeElement !== el) return;
+    const pos = caretAfterDigits(national, n);
+    el.setSelectionRange(pos, pos);
+  }, [national]);
+
+  const changeNumber = (el: HTMLInputElement) => {
+    const text = el.value;
+    let digits = digitsOf(text);
+    let before = digitsOf(text.slice(0, el.selectionStart ?? text.length)).length;
+    // Backspace over a bracket, space or dash leaves the digits unchanged, so
+    // the formatter would put it straight back. Delete the digit before it.
+    if (text.length < national.length && digits === digitsOf(national) && before > 0) {
+      digits = digits.slice(0, before - 1) + digits.slice(before);
+      before -= 1;
+    }
+    // Stop at the digit limit. Length alone isn't enough: India allows some
+    // 13-digit numbers, but a 10-digit mobile is complete. So a typed digit is
+    // ignored (wherever the caret is) if it goes past the country's longest
+    // number, or turns a complete, valid number into an invalid one. Germany's
+    // genuinely longer numbers stay valid and are allowed. A paste is cut to
+    // its longest valid prefix.
+    const international = text.trimStart().startsWith("+");
+    const prev = digitsOf(national);
+    const valid = (d: string) => !!parsePhone(international ? `+${d}` : d, country)?.valid;
+    const tooLong = (d: string) => isTooLong(d, country, international);
+    if (digits.length === prev.length + 1) {
+      if (tooLong(digits) || (valid(prev) && !valid(digits))) {
+        digits = prev;
+        before = Math.max(0, before - 1);
+      }
+    } else if (digits.length > prev.length && !valid(digits)) {
+      while (digits && tooLong(digits)) digits = digits.slice(0, -1);
+      for (let n = digits.length - 1; n > 0; n--) {
+        if (valid(digits.slice(0, n))) {
+          digits = digits.slice(0, n);
+          break;
+        }
+      }
+    }
+    // Backstop: E.164 caps a number at 15 digits including the country code
+    // ("+49" leaves 13 for the German number itself).
+    digits = digits.slice(0, international ? 15 : 15 - digitsOf(dialCode(country)).length);
+
+    let c = country;
+    let formatted: string;
+    if (international) {
+      // Typed or pasted with its own country code. Once it's a complete,
+      // valid number, switch the picker and show the national part.
+      const parsed = parsePhone(`+${digits}`, country);
+      if (parsed?.valid && parsed.country) {
+        c = parsed.country;
+        formatted = parsed.display;
+        before = Math.max(0, before - digitsOf(dialCode(c)).length);
+      } else {
+        formatted = formatInternational(`+${digits}`);
+      }
+    } else {
+      formatted = formatDigits(digits, c);
+    }
+
+    if (formatted === national) {
+      // Only a rejected character (a letter, say) was typed. The value doesn't
+      // change, so nothing re-renders, and React's reset of the controlled
+      // input would leave the caret at the end. Put it back after that reset.
+      const pos = caretAfterDigits(formatted, before);
+      requestAnimationFrame(() => el.setSelectionRange(pos, pos));
+      return;
+    }
+    caretDigits.current = before;
     if (c !== country) setCountry(c);
-    report(text, c);
+    setNational(formatted);
+    report(formatted, c);
   };
 
   const changeCountry = (c: CountryCode) => {
+    // Digits typed for a country with longer numbers are trimmed to fit.
+    let digits = digitsOf(national);
+    while (digits && isTooLong(digits, c, false)) digits = digits.slice(0, -1);
+    const formatted = national.trimStart().startsWith("+") ? national : formatDigits(digits, c);
     setCountry(c);
-    report(national, c);
-  };
-
-  // Tidy the number into the country's usual format once they're done typing.
-  // Not while typing: reformatting under the cursor fights backspace.
-  const blur = () => {
-    const parsed = national.trim() ? parsePhone(national, country) : undefined;
-    if (parsed?.valid) setNational(parsed.display);
-    onBlur();
+    setNational(formatted);
+    report(formatted, c);
   };
 
   return (
@@ -96,8 +186,9 @@ export default function PhoneField({
         inputMode="tel"
         maxLength={25}
         value={national}
-        onChange={(e) => changeNumber(e.target.value)}
-        onBlur={blur}
+        ref={inputRef}
+        onChange={(e) => changeNumber(e.currentTarget)}
+        onBlur={onBlur}
         aria-invalid={invalid}
         aria-describedby={describedBy}
         className="w-full min-w-0 rounded-r-xl border border-hairline bg-white px-3 py-2 text-sm text-ink focus:border-cadre-blue/50 focus:ring-2 focus:ring-cadre-blue/20 focus:outline-none aria-[invalid=true]:border-red-500"
