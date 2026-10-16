@@ -6,6 +6,7 @@ import {
   clipSummary,
   handoffSubmissionSchema,
   transcriptOf,
+  validateField,
 } from "./handoff";
 
 const valid = {
@@ -33,10 +34,18 @@ describe("handoffSubmissionSchema", () => {
     expect(fields).toEqual(expect.arrayContaining(["email", "firstName", "lastName", "company"]));
   });
 
-  it("accepts a normal phone number and rejects junk", () => {
-    expect(handoffSubmissionSchema.safeParse({ ...valid, phone: "+1 (619) 555-0100" }).success).toBe(true);
-    const bad = handoffSubmissionSchema.safeParse({ ...valid, phone: "call me maybe" });
-    expect(bad.error?.issues.map((i) => i.path[0])).toEqual(["phone"]);
+  it("accepts an E.164 phone number (what the form sends) and rejects anything else", () => {
+    expect(handoffSubmissionSchema.safeParse({ ...valid, phone: "+16195550100" }).success).toBe(true);
+    for (const phone of ["call me maybe", "6195550100", "+1 (619) 555-0100"]) {
+      const bad = handoffSubmissionSchema.safeParse({ ...valid, phone });
+      expect(bad.error?.issues.map((i) => i.path[0])).toEqual(["phone"]);
+    }
+  });
+
+  it("validates single fields for on-blur checks, with the same messages as submit", () => {
+    expect(validateField("email", "ada@example")).toBe("Please enter a valid email address.");
+    expect(validateField("email", "ada@example.com")).toBeUndefined();
+    expect(validateField("company", "")).toBe("Please enter your company name.");
   });
 
   it("rejects topics outside the enum (the model can't invent a queue)", () => {

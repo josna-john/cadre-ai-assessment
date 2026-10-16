@@ -1,4 +1,5 @@
-import { HANDOFF_FORM_FIELDS, handoffSubmissionSchema } from "@/lib/handoff";
+import { HANDOFF_FORM_FIELDS, INVALID_PHONE, handoffSubmissionSchema } from "@/lib/handoff";
+import { isValidPhone } from "@/lib/phone";
 import { HandoffRateLimitedError, saveHandoff } from "@/lib/handoff-store";
 import { logEvent } from "@/lib/log";
 
@@ -55,6 +56,16 @@ export async function POST(req: Request) {
     // Honeypot tripped: look successful to the bot, save nothing.
     logEvent("handoff.rejected", { reason: "honeypot" });
     return Response.json({ ok: true }, { status: 201 });
+  }
+
+  // The shared schema only checks the E.164 shape. The per-country digit rules
+  // are too big for the browser bundle, so the strict check happens here.
+  if (handoff.phone && !isValidPhone(handoff.phone)) {
+    logEvent("handoff.rejected", { reason: "validation", fields: ["phone"] });
+    return Response.json(
+      { error: "invalid_handoff", message: "Please check the highlighted fields.", fieldErrors: { phone: INVALID_PHONE } },
+      { status: 400 },
+    );
   }
 
   try {

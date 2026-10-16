@@ -16,6 +16,8 @@
   /* Cadre's --cadre-blue, used only for things you can click (plus one headline word). */
   --color-cadre-blue: #08749b;
   --color-cadre-blue-dark: #065c7b;
+  /* Cadre's --cadre-red: the required-field asterisk, as on cadre.ai's forms. */
+  --color-cadre-red: #db4545;
 
   --radius-card: 1.25rem;
 

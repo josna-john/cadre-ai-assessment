@@ -1,9 +1,9 @@
 "use client";
 
 import type { UIMessage } from "ai";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { CadreLogo } from "./CadreLogo";
-import { ConversationContext } from "./HandoffForm";
+import { ConversationContext, SentDetailsContext, type ContactDetails } from "./HandoffForm";
 import { MessagePart } from "./MessagePart";
 
 export function MessageList({
@@ -16,6 +16,10 @@ export function MessageList({
   footer?: ReactNode;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
+  // Details from a handoff already sent in this chat. This component unmounts
+  // on "New chat" (no messages), which resets them.
+  const [sentDetails, setSentDetails] = useState<ContactDetails>();
+  const sent = useMemo(() => ({ details: sentDetails, remember: setSentDetails }), [sentDetails]);
 
   // Keep the newest content in view as messages stream in.
   useEffect(() => {
@@ -24,61 +28,63 @@ export function MessageList({
 
   return (
     <ConversationContext.Provider value={messages}>
-      <div
-        role="log"
-        aria-live="polite"
-        aria-relevant="additions"
-        aria-label="Conversation"
-        className="space-y-6"
-      >
-        {messages.map((message) =>
-          message.role === "user" ? (
-            <div key={message.id} className="flex animate-rise justify-end">
-              <div className="max-w-[85%] rounded-card rounded-br-md bg-ink px-4 py-2.5 text-white">
-                <span className="sr-only">You said: </span>
-                {message.parts.map((part, i) => (
-                  <MessagePart key={i} part={part} role="user" />
-                ))}
+      <SentDetailsContext.Provider value={sent}>
+        <div
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions"
+          aria-label="Conversation"
+          className="space-y-6"
+        >
+          {messages.map((message) =>
+            message.role === "user" ? (
+              <div key={message.id} className="flex animate-rise justify-end">
+                <div className="max-w-[85%] rounded-card rounded-br-md bg-ink px-4 py-2.5 text-white">
+                  <span className="sr-only">You said: </span>
+                  {message.parts.map((part, i) => (
+                    <MessagePart key={i} part={part} role="user" />
+                  ))}
+                </div>
               </div>
-            </div>
-          ) : (
-            <AssistantRow key={message.id}>
-              <div className="min-w-0 flex-1 space-y-3 sm:max-w-[90%] sm:flex-none rounded-card rounded-tl-md bg-white px-4 py-3 leading-relaxed text-ink-800 shadow-pill">
-                <span className="sr-only">Assistant: </span>
-                {message.parts.map((part, i) => (
-                  <MessagePart
-                    key={i}
-                    part={part}
-                    role="assistant"
-                    hasHandoff={message.parts.some((p) => p.type === "tool-offer_handoff")}
+            ) : (
+              <AssistantRow key={message.id}>
+                <div className="min-w-0 flex-1 space-y-3 sm:max-w-[90%] sm:flex-none rounded-card rounded-tl-md bg-white px-4 py-3 leading-relaxed text-ink-800 shadow-pill">
+                  <span className="sr-only">Assistant: </span>
+                  {message.parts.map((part, i) => (
+                    <MessagePart
+                      key={i}
+                      part={part}
+                      role="assistant"
+                      hasHandoff={message.parts.some((p) => p.type === "tool-offer_handoff")}
+                    />
+                  ))}
+                </div>
+              </AssistantRow>
+            ),
+          )}
+
+          {showTyping && (
+            <AssistantRow>
+              <div
+                className="flex items-center gap-1 rounded-card rounded-tl-md bg-white px-4 py-4 shadow-pill"
+                aria-label="Assistant is typing"
+                role="status"
+              >
+                {[0, 150, 300].map((delay) => (
+                  <span
+                    key={delay}
+                    className="size-2 animate-bounce rounded-full bg-cadre-blue/50"
+                    style={{ animationDelay: `${delay}ms` }}
                   />
                 ))}
               </div>
             </AssistantRow>
-          ),
-        )}
+          )}
 
-        {showTyping && (
-          <AssistantRow>
-            <div
-              className="flex items-center gap-1 rounded-card rounded-tl-md bg-white px-4 py-4 shadow-pill"
-              aria-label="Assistant is typing"
-              role="status"
-            >
-              {[0, 150, 300].map((delay) => (
-                <span
-                  key={delay}
-                  className="size-2 animate-bounce rounded-full bg-cadre-blue/50"
-                  style={{ animationDelay: `${delay}ms` }}
-                />
-              ))}
-            </div>
-          </AssistantRow>
-        )}
-
-        {footer}
-        <div ref={endRef} />
-      </div>
+          {footer}
+          <div ref={endRef} />
+        </div>
+      </SentDetailsContext.Provider>
     </ConversationContext.Provider>
   );
 }

@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/copy-flags.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/copy-flags.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -16,6 +18,8 @@
     "@openrouter/ai-sdk-provider": "^3.1.0",
     "@supabase/supabase-js": "2.118.0",
     "ai": "^7.0.140",
+    "country-flag-icons": "1.6.20",
+    "libphonenumber-js": "1.13.14",
     "next": "16.4.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",

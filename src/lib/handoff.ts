@@ -76,8 +76,12 @@ const optionalText = (max: number) =>
 const requiredText = (max: number, missing: string) =>
   z.string().trim().min(1, missing).max(max).refine(noNul, UNSUPPORTED);
 
-// Digits plus the usual separators; anything else is a typo or junk.
-const PHONE = /^\+?[\d\s().-]{7,40}$/;
+// The form submits phone numbers in E.164 ("+16195550100"). This is a cheap
+// shape check; the strict per-country check needs ~145 KB of numbering rules,
+// so it lives server-side in the route (src/lib/phone.ts), not in this
+// browser-shared module.
+const E164 = /^\+[1-9]\d{6,14}$/;
+const INVALID_PHONE = "Please enter a valid phone number for the selected country.";
 
 // What the visitor submits. Required fields mirror Cadre's own contact form
 // (cadre.ai/contact: first and last name, company, work email), so a handoff
@@ -89,7 +93,7 @@ export const handoffSubmissionSchema = handoffOfferSchema.extend({
   lastName: requiredText(50, "Please enter your last name."),
   email: z.email("Please enter a valid email address.").max(254),
   company: requiredText(200, "Please enter your company name."),
-  phone: optionalText(40).refine((v) => !v || PHONE.test(v), "Please enter a valid phone number."),
+  phone: optionalText(16).refine((v) => !v || E164.test(v), INVALID_PHONE),
   note: optionalText(1000),
   transcript: z
     .array(
@@ -109,6 +113,14 @@ export type HandoffSubmission = z.infer<typeof handoffSubmissionSchema>;
 // mean the request itself is broken, and retrying won't help.
 export const HANDOFF_FORM_FIELDS = ["firstName", "lastName", "email", "company", "phone", "note"] as const;
 export type HandoffFormField = (typeof HANDOFF_FORM_FIELDS)[number];
+export { INVALID_PHONE };
+
+// One field against the same rules the server applies, so the form can flag a
+// mistake when the visitor leaves the field instead of only after submitting.
+export function validateField(field: HandoffFormField, value: string): string | undefined {
+  const result = handoffSubmissionSchema.shape[field].safeParse(value);
+  return result.success ? undefined : result.error.issues[0]?.message;
+}
 
 // The last few turns as plain text, for the team's context. Shared by the
 // form (to build the request) and tests. It's visitor-supplied, so the team

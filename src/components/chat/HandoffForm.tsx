@@ -1,20 +1,39 @@
 "use client";
 
 import type { UIMessage } from "ai";
-import { createContext, useContext, useId, useState, type FormEvent } from "react";
+import dynamic from "next/dynamic";
+import { createContext, useContext, useId, useRef, useState, type FormEvent } from "react";
 import { resolveActions } from "@/lib/actions";
 import { ActionButtons } from "./ActionButtons";
+import type { PhoneValue } from "./PhoneField";
 import {
   HANDOFF_TOPICS,
   handoffOfferSchema,
   transcriptOf,
+  validateField,
   type HandoffFormField,
   type HandoffOffer,
 } from "@/lib/handoff";
 
+// Phone numbering rules are ~145 KB; load them only when a form appears.
+const PhoneField = dynamic(() => import("./PhoneField"), {
+  ssr: false,
+  loading: () => <div aria-hidden="true" className="h-[38px] rounded-xl border border-hairline bg-white" />,
+});
+
 // The conversation so far, for the transcript attached to a handoff.
 // Provided by MessageList so MessagePart doesn't need to thread it through.
 export const ConversationContext = createContext<UIMessage[]>([]);
+
+// Contact details already sent in this chat, so a second handoff (a new
+// question later on) is prefilled instead of asking for everything again.
+// Held in memory by MessageList only: it's gone on "New chat" or a reload, and
+// never stored in the browser.
+export type ContactDetails = Pick<Record<HandoffFormField, string>, "firstName" | "lastName" | "email" | "company" | "phone">;
+export const SentDetailsContext = createContext<{
+  details?: ContactDetails;
+  remember: (d: ContactDetails) => void;
+}>({ remember: () => {} });
 
 // Tool output crosses the network as JSON, so check its shape before trusting it.
 export function isHandoffOffer(output: unknown): output is HandoffOffer {
@@ -25,20 +44,27 @@ type FieldErrors = Partial<Record<HandoffFormField, string>>;
 // The form stays mounted in every state but "sent", so a failed submit never
 // loses what the visitor typed.
 type State =
-  | { kind: "editing"; fieldErrors?: FieldErrors; message?: string }
+  | { kind: "editing"; message?: string }
   | { kind: "sending" }
   | { kind: "sent"; name: string }
   | { kind: "unavailable"; message: string };
 
 const UNAVAILABLE = "We couldn't send that just now. You can try again, or email the team instead.";
 const RATE_LIMITED = "You've sent several requests already. Please email the team instead.";
+const CHECK_FIELDS = "Please check the highlighted fields.";
+
+const TEXT_FIELDS = ["firstName", "lastName", "email", "company", "note"] as const;
 
 const input =
   "w-full rounded-xl border border-hairline bg-white px-3 py-2 text-sm text-ink focus:border-cadre-blue/50 focus:outline-none focus:ring-2 focus:ring-cadre-blue/20 aria-[invalid=true]:border-red-500";
 
 export function HandoffForm({ offer }: { offer: HandoffOffer }) {
   const messages = useContext(ConversationContext);
+  const sent = useContext(SentDetailsContext);
+  const prefill = sent.details;
   const [state, setState] = useState<State>({ kind: "editing" });
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const phone = useRef<PhoneValue>({ value: prefill?.phone ?? "" });
   const id = useId();
 
   if (state.kind === "sent") {
@@ -49,12 +75,51 @@ export function HandoffForm({ offer }: { offer: HandoffOffer }) {
     );
   }
 
-  const errors = state.kind === "editing" ? (state.fieldErrors ?? {}) : {};
+  const setError = (field: HandoffFormField, error: string | undefined) =>
+    setErrors((prev) => (prev[field] === error ? prev : { ...prev, [field]: error }));
+
+  // Check a field's format when the visitor leaves it, against the same rules
+  // the server applies (email whitespace is trimmed, as it is on submit). An
+  // empty field isn't flagged here: tabbing past a required field shouldn't
+  // nag. Missing fields are reported on submit.
+  const checkOnBlur = (field: (typeof TEXT_FIELDS)[number]) => (e: { currentTarget: { value: string } }) => {
+    const value = e.currentTarget.value.trim();
+    if (value) setError(field, validateField(field, value));
+  };
+  // Once a field shows an error, clear it as soon as the input becomes valid.
+  const recheck = (field: (typeof TEXT_FIELDS)[number]) => (e: { currentTarget: { value: string } }) => {
+    if (errors[field]) setError(field, validateField(field, e.currentTarget.value.trim()));
+  };
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
-    const field = (name: string) => String(form.get(name) ?? "");
+    const field = (name: string) => String(form.get(name) ?? "").trim();
+
+    // Validate everything in the browser first; the server checks again.
+    const found: FieldErrors = {};
+    for (const f of TEXT_FIELDS) {
+      const err = validateField(f, field(f));
+      if (err) found[f] = err;
+    }
+    if (phone.current.error) found.phone = phone.current.error;
+    setErrors(found);
+    // Fields in on-screen order, so focus lands on the first problem.
+    const firstInvalid = (["firstName", "lastName", "email", "phone", "company", "note"] as const).find((f) => found[f]);
+    if (firstInvalid) {
+      setState({ kind: "editing", message: CHECK_FIELDS });
+      // By id, not [aria-invalid]: the error state hasn't rendered yet.
+      document.getElementById(`${id}-${firstInvalid}`)?.focus();
+      return;
+    }
+
+    const details: ContactDetails = {
+      firstName: field("firstName"),
+      lastName: field("lastName"),
+      email: field("email"),
+      company: field("company"),
+      phone: phone.current.value,
+    };
     setState({ kind: "sending" });
 
     try {
@@ -63,21 +128,21 @@ export function HandoffForm({ offer }: { offer: HandoffOffer }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...offer,
-          firstName: field("firstName"),
-          lastName: field("lastName"),
-          email: field("email"),
-          company: field("company"),
-          phone: field("phone"),
+          ...details,
           note: field("note"),
-          website: field("website"),
+          website: String(form.get("website") ?? ""),
           transcript: transcriptOf(messages),
         }),
       });
-      if (res.ok) return setState({ kind: "sent", name: field("firstName").trim() });
+      if (res.ok) {
+        sent.remember(details);
+        return setState({ kind: "sent", name: details.firstName });
+      }
 
       const body = (await res.json().catch(() => ({}))) as { message?: string; fieldErrors?: FieldErrors };
       if (res.status === 400 && body.fieldErrors) {
-        return setState({ kind: "editing", fieldErrors: body.fieldErrors, message: body.message });
+        setErrors(body.fieldErrors);
+        return setState({ kind: "editing", message: body.message });
       }
       // Over the handoff limit: retrying won't help for a while, so don't suggest it.
       if (res.status === 429) return setState({ kind: "unavailable", message: RATE_LIMITED });
@@ -88,6 +153,17 @@ export function HandoffForm({ offer }: { offer: HandoffOffer }) {
   }
 
   const sending = state.kind === "sending";
+  const errorId = (f: HandoffFormField) => (errors[f] ? `${id}-${f}-error` : undefined);
+  const textInput = (f: (typeof TEXT_FIELDS)[number]) => ({
+    id: `${id}-${f}`,
+    name: f,
+    defaultValue: f === "note" ? undefined : prefill?.[f],
+    onBlur: checkOnBlur(f),
+    onChange: recheck(f),
+    "aria-invalid": !!errors[f],
+    "aria-describedby": errorId(f),
+    className: input,
+  });
 
   return (
     <form
@@ -110,25 +186,39 @@ export function HandoffForm({ offer }: { offer: HandoffOffer }) {
         <p className="mt-1 text-sm text-ink-800">{offer.summary}</p>
       </div>
 
+      {prefill && (
+        <p className="text-xs text-ink-600">We&apos;ve filled in the details you gave earlier. Change anything that&apos;s different.</p>
+      )}
+
       <div className="grid gap-3 sm:grid-cols-2">
         <Field id={`${id}-firstName`} label="First name" required error={errors.firstName}>
-          <input id={`${id}-firstName`} name="firstName" autoComplete="given-name" required maxLength={50} aria-invalid={!!errors.firstName} className={input} />
+          <input {...textInput("firstName")} autoComplete="given-name" required maxLength={50} />
         </Field>
         <Field id={`${id}-lastName`} label="Last name" required error={errors.lastName}>
-          <input id={`${id}-lastName`} name="lastName" autoComplete="family-name" required maxLength={50} aria-invalid={!!errors.lastName} className={input} />
+          <input {...textInput("lastName")} autoComplete="family-name" required maxLength={50} />
         </Field>
         <Field id={`${id}-email`} label="Work email" required error={errors.email}>
-          <input id={`${id}-email`} name="email" type="email" autoComplete="email" required maxLength={254} aria-invalid={!!errors.email} className={input} />
+          <input {...textInput("email")} type="email" inputMode="email" autoComplete="email" required maxLength={254} />
         </Field>
         <Field id={`${id}-phone`} label="Phone number (optional)" error={errors.phone}>
-          <input id={`${id}-phone`} name="phone" type="tel" autoComplete="tel" maxLength={40} aria-invalid={!!errors.phone} className={input} />
+          <PhoneField
+            id={`${id}-phone`}
+            initial={prefill?.phone}
+            invalid={!!errors.phone}
+            describedBy={errorId("phone")}
+            onChange={(v) => {
+              phone.current = v;
+              if (errors.phone) setError("phone", v.error);
+            }}
+            onBlur={() => setError("phone", phone.current.error)}
+          />
         </Field>
       </div>
       <Field id={`${id}-company`} label="Company name" required error={errors.company}>
-        <input id={`${id}-company`} name="company" autoComplete="organization" required maxLength={200} aria-invalid={!!errors.company} className={input} />
+        <input {...textInput("company")} autoComplete="organization" required maxLength={200} />
       </Field>
       <Field id={`${id}-note`} label="Anything to add? (optional)" error={errors.note}>
-        <textarea id={`${id}-note`} name="note" rows={2} maxLength={1000} className={input} />
+        <textarea {...textInput("note")} rows={2} maxLength={1000} />
       </Field>
 
       {/* Honeypot: hidden from people and screen readers; bots tend to fill it. */}
@@ -175,16 +265,20 @@ function Field({
     <div className="space-y-1">
       <label htmlFor={id} className="block text-xs font-medium text-ink-800">
         {label}
-        {/* Visual cue only, like cadre.ai's form; the input's `required` is what
-            screen readers announce. */}
+        {/* Visual cue only, in Cadre's red like cadre.ai's form; the input's
+            `required` is what screen readers announce. */}
         {required && (
-          <span aria-hidden="true" className="ml-0.5 text-red-600">
+          <span aria-hidden="true" className="ml-0.5 text-cadre-red">
             *
           </span>
         )}
       </label>
       {children}
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && (
+        <p id={`${id}-error`} className="text-xs text-red-600">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

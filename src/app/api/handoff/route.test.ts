@@ -55,6 +55,18 @@ describe("POST /api/handoff", () => {
     expect(saved).toHaveLength(0);
   });
 
+  it("rejects a well-formed but non-existent phone number with a phone field error", async () => {
+    const res = await post({ ...body, phone: "+11234567890" });
+    expect(res.status).toBe(400);
+    expect((await res.json()).fieldErrors.phone).toBeTruthy();
+    expect(saved).toHaveLength(0);
+  });
+
+  it("saves a valid international phone number", async () => {
+    expect((await post({ ...body, phone: "+442079460958" })).status).toBe(201);
+    expect(saved[0]).toMatchObject({ phone: "+442079460958" });
+  });
+
   it("rejects malformed JSON", async () => {
     expect((await post("{")).status).toBe(400);
   });

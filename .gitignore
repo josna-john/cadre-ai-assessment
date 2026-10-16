@@ -57,3 +57,6 @@ CLAUDE.local.md
 
 # supabase CLI cache
 /supabase/.temp/
+
+# copied from country-flag-icons by scripts/copy-flags.mjs
+/public/flags/
