@@ -129,6 +129,7 @@ export function Chat() {
             <MessageList
               messages={messages}
               showTyping={status === "submitted"}
+              streaming={busy}
               footer={
                 error && (
                   <ErrorBanner

@@ -9,10 +9,13 @@ import { MessagePart } from "./MessagePart";
 export function MessageList({
   messages,
   showTyping,
+  streaming,
   footer,
 }: {
   messages: UIMessage[];
   showTyping: boolean;
+  // The last reply is still arriving.
+  streaming: boolean;
   footer?: ReactNode;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
@@ -36,7 +39,7 @@ export function MessageList({
           aria-label="Conversation"
           className="space-y-6"
         >
-          {messages.map((message) =>
+          {messages.map((message, index) =>
             message.role === "user" ? (
               <div key={message.id} className="flex animate-rise justify-end">
                 <div className="max-w-[85%] rounded-card rounded-br-md bg-ink px-4 py-2.5 text-white">
@@ -56,6 +59,7 @@ export function MessageList({
                       part={part}
                       role="assistant"
                       hasHandoff={message.parts.some((p) => p.type === "tool-offer_handoff")}
+                      finished={!(streaming && index === messages.length - 1)}
                     />
                   ))}
                 </div>
