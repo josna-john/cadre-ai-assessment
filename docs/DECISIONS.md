@@ -205,6 +205,13 @@ One entry per meaningful architectural choice: what was chosen, what was rejecte
 - **Trade-off:** the smoothing adds up to about 12 ms per word when the model is faster than that pace, which is about 1–2 s on a long reply. It's covered by the existing timeout and has no token cost. Evals run the same path.
 - **Revisit when:** replies get much longer, or latency becomes the complaint. Lower `delayInMs`, or chunk by line.
 
+### D13: Conversation memory doubled to 40 messages / 32k characters
+- **Context:** the model saw only the last 20 messages (about 10 Q&A pairs), capped at 16k characters, so with normal-length answers it lost a visitor's early questions after 6–10 turns. Asking "what was my first question?" in a longer chat failed even though the transcript was still on screen.
+- **Decision:** `maxHistoryMessages` 20 → 40 and `maxHistoryChars` 16k → 32k in `src/lib/limits.ts`. Both move together, because the character cap would otherwise bind first and 40 messages would never fit.
+- **Alternatives considered:** summarizing older turns into a running note (keeps memory unbounded at near-constant cost, but adds a second model call and its own failure modes; listed under Next steps). Unlimited history (rejected: the client sends the history, so a scripted chat could grow input cost without bound).
+- **Trade-off / cost:** only long chats pay more. History isn't covered by the prompt cache, so the worst case adds about 4k input tokens, roughly $0.0004 per turn at the rate measured by `/api/health/ai`. Short chats cost the same as before. The per-request ceiling is still fixed, so a scripted history can't exceed it.
+- **Revisit when:** visitors regularly run past 20 turns, or log data shows history dominating spend. Then summarize older turns instead of raising the cap again.
+
 ## Eval log
 | Date | SHA | Model | Pass rate | Cost | Notes |
 |---|---|---|---|---|---|
@@ -218,6 +225,7 @@ One entry per meaningful architectural choice: what was chosen, what was rejecte
 | 2026-10-16 | b4f1a23 + D12 changes | claude-haiku-5.5 | 19/21 → 20/21 | about $0.03 incl. reruns | Output cap 800, tool-call fallbacks, new `everything-in-detail` case (D12). Handoff drift after reasoning-off (healthcare, `url-bait`, pricing) traced to prompt gaps and two KB lines that read as hedges; fixed and rerun 4–8× each, all passing. "aren't on"/"isn't on" added to the healthcare phrase list (correct answer, strict scorer). Final: 20/21; the one miss is the known ~1-in-5 over-length "in detail" reply, which still ends with its buttons. p50 1.7 s, p95 3.1 s |
 | 2026-10-16 | 2da6494 + rename | claude-haiku-5.5 | 20/21 | $0.0058 incl. reruns | Bot renamed "Ask Cadre" → "Cadena" in the system prompt, header and tab title. The one miss was `everything-in-detail` offering a pricing handoff (and `book_call` beside it) after a full services overview; reran it 3× and all passed, so it is logged as model variance, not a regression from the rename. p50 1.8 s, p95 3.1 s |
 | 2026-10-16 | 2da6494 + source-talk fix | claude-haiku-5.5 | 21/21 | $0.0039 (+ about $0.005 for an accidental duplicate run) | On prod, refusals read as "Cadre doesn't publish rates" and "I don't have a published turnaround time": the model echoed internal KB labels ("Not published"). Added a Style rule (never talk about sources; say who can help), reworded the KB notes so they no longer carry the word, and added a universal scorer check that fails any reply mentioning "publish(ed)" or "public information". Grounding is unchanged: still no prices or promised timelines. p50 1.7 s, p95 2.9 s |
+| 2026-10-16 | ca1e7e6 + D13 | claude-haiku-5.5 | 20/21 → 21/21 | about $0.011 incl. reruns | History cap 20 → 40 messages and 16k → 32k chars (D13). KB: office hours say "San Diego time" instead of "the site doesn't state a time zone" (the bot was echoing it as "my information doesn't specify"), and the Maturity Index scoring caveat is no longer volunteered. First wording regressed `maturity-index` (1/4 on rerun): "how do I get scored?" was read as a question about the scoring method, so replies dropped "eight-pillar" or offered a handoff. Reworded to separate taking the assessment from the method: 5/5 on rerun, then 21/21 full run. p50 1.8 s, p95 2.9 s |
 
 ---
 
@@ -237,6 +245,7 @@ What I would do next to take this from a working prototype to something Cadre ru
 **3. Cost and scale**
 - At about $0.0003 per cached turn, 10,000 conversations of 4 turns cost about $12. Cost isn't the constraint; abuse is.
 - On a paid plan: an hourly per-IP cap on chat, a global daily spend circuit breaker (stop accepting chats and show "email the team" once spend crosses a threshold), and BotID on the chat endpoint.
+- Long-conversation memory: past the 40-message window (D13), fold older turns into a short running summary sent with each request, so early context survives at near-constant cost.
 - Keep the KB in the prompt until it passes about 30–50k tokens, or Cadre wants private or per-client documents. Then move to retrieval (pgvector in the same Supabase project) with access control.
 
 **4. Quality**

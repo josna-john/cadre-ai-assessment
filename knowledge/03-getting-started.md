@@ -10,7 +10,7 @@
 ## Contact details
 <!-- src: https://cadre.ai/contact -->
 - Email and phone are available through the `email_team` and `call_team` actions.
-- Office hours are Monday to Friday, 8:00 AM to 6:00 PM, at the San Diego office.
+- Office hours are Monday to Friday, 8:00 AM to 6:00 PM, San Diego time.
 
 ## Client portal (existing clients)
 <!-- src: https://cadre.ai (homepage); https://portal.gocadre.ai -->
@@ -27,7 +27,8 @@
 - To get scored, start it from the portal (`maturity_index` action). You enter your company name, company website, your name and your work email, then confirm with a 6-digit code sent by email.
 <!-- src: https://cadre.ai/ai-transformation-intensive -->
 - It's also step 2 of the AI Transformation Intensive. There it maps the team's excitement and concerns, preferred learning styles, and current AI use.
-- **Escalate:** exactly how the scoring works, and which pillar names appear in the report. Don't list the pillars as the index's scoring categories. If asked, say the report explains each grade and the team can walk through the scoring.
+- "How do I get scored?" means how to take the assessment: answer with the steps above, and say it scores the company across the eight-pillar framework.
+- Don't describe the scoring method or which pillar names appear in the report, and don't list the pillars as the index's scoring categories. Only if someone asks how the grades are calculated, say the report explains each grade. Don't volunteer this otherwise, and don't offer a handoff for it.
 
 ## How engagements start
 <!-- src: https://cadre.ai/strategy; https://cadre.ai/ai-transformation-intensive -->

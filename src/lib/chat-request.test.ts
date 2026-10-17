@@ -85,7 +85,7 @@ describe("parseChatRequest", () => {
   });
 
   it("keeps only the most recent messages", () => {
-    // Alternating turns ending on the user: a window of maxHistoryMessages (20)
+    // Alternating turns ending on the user: a window of maxHistoryMessages (40)
     // would start on an assistant turn, which gets dropped, so 19 are kept.
     const long = Array.from({ length: LIMITS.maxHistoryMessages + 9 }, (_, i) =>
       i % 2 === 0 ? user(`q${i}`, `u${i}`) : assistant(`a${i}`, `a${i}`),

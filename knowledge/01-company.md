@@ -29,7 +29,7 @@
 ## Company basics
 <!-- src: https://cadre.ai/contact -->
 - Headquarters: 3580 Carmel Mountain Rd, #150, San Diego, CA 92130.
-- Office hours: Monday to Friday, 8:00 AM to 6:00 PM. The site doesn't state a time zone; the office is in San Diego.
+- Office hours: Monday to Friday, 8:00 AM to 6:00 PM, San Diego time.
 <!-- src: https://cadre.ai/about -->
 - Leadership:
   - Grayson Lafrenz (Founder & CEO)

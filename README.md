@@ -102,7 +102,7 @@ The eval set covers every scenario in the brief, the hard lines (pricing, certif
 
 ## Cost and limits
 - About **$0.0003 per chat turn** with a warm prompt cache, and $0.0009 on a cache write.
-- Caps: 1,000 characters per message, the last 20 messages or 16k characters of history, 800 output tokens, a 30-second timeout.
+- Caps: 1,000 characters per message, the last 40 messages or 32k characters of history, 800 output tokens, a 30-second timeout.
 - Rate limits: 20 POSTs a minute per IP at the edge, and 5 handoffs per 10 minutes per visitor. The OpenRouter key's hard spend limit is the final backstop.
 
 ## Docs

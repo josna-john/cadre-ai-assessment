@@ -3,12 +3,14 @@
 export const LIMITS = {
   // Longest single user message, in characters.
   maxInputChars: 1000,
-  // Only the most recent messages are sent to the model...
-  maxHistoryMessages: 20,
+  // Only the most recent messages are sent to the model (about 20 Q&A pairs,
+  // so a visitor can refer back to early questions; D13)...
+  maxHistoryMessages: 40,
   // ...and only as many as fit in this size (serialized characters). The
   // client controls the history it sends, so this caps input tokens per
-  // request even against a scripted, oversized history.
-  maxHistoryChars: 16_000,
+  // request even against a scripted, oversized history. Doubled with the
+  // message cap so 40 typical messages actually fit (D13).
+  maxHistoryChars: 32_000,
   // Cap on the model's reply length per turn, text and tool calls together.
   // 800, not 600: a "tell me everything in detail" answer hit 600 while its
   // tool calls were still streaming, so the buttons never ran (D12). Worst
