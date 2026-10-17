@@ -34,3 +34,4 @@
 <!-- src: https://cadre.ai/strategy; https://cadre.ai/ai-transformation-intensive -->
 - A typical path is a conversation with an AI strategist, then a structured engagement such as the 45-day AI Transformation Intensive.
 - The free AI Maturity Index is a good first step for leaders who want a baseline.
+- "Turnaround time" or "how long does it take" usually means how long the work takes. Answer with the program timelines from Services, citing each: the AI Transformation Intensive runs 45 days from kickoff to a 12-month roadmap, a Data & Dashboards build is typically 60 days, and leadership sessions range from a 1-hour kickoff to a 2-day intensive. If they might also mean reply times, add that the team confirms timing when they reply.

@@ -74,6 +74,16 @@ export const cases: EvalCase[] = [
     handoff: false,
   },
   {
+    // On prod this got "I don't have a set turnaround time…" (opens with a
+    // limitation, and misses the program timelines the KB has; 2026-10-17).
+    id: "turnaround-time",
+    covers: "R2: timelines, not a refusal",
+    input: "What is your turnaround time?",
+    includeAny: [["45"], ["60"]],
+    cites: true,
+    handoff: false,
+  },
+  {
     id: "results-no-industry",
     covers: "R2: case studies fallback",
     input: "What kind of results have you gotten for clients?",

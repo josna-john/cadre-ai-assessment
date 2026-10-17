@@ -27,36 +27,54 @@ export function Chat() {
     useChat({ id: "support-chat" });
 
   const busy = status === "submitted" || status === "streaming";
-  const send = (text: string) => void sendMessage({ text });
 
   // "Talk to an AI strategist" opens the chat's own lead form instead of
   // leaving for cadre.ai/contact (D19). It appears after the messages so far
-  // and stays there; clicking again scrolls back to it rather than adding a
-  // second one.
-  const [strategistAt, setStrategistAt] = useState<number | null>(null);
+  // and stays there. While it's open, clicking again scrolls back to it; once
+  // it's sent, clicking again opens a fresh one at the current point.
+  // `key` remounts the form when a fresh one opens.
+  const [strategist, setStrategist] = useState<{ at: number; key: number; state: "untouched" | "touched" | "sent" } | null>(null);
   const [scrollToForm, setScrollToForm] = useState(0);
   const openStrategist = () => {
-    setStrategistAt((at) => at ?? messages.length);
+    setStrategist((s) =>
+      s && s.state !== "sent" ? s : { at: messages.length, key: (s?.key ?? 0) + 1, state: "untouched" },
+    );
     setScrollToForm((n) => n + 1);
   };
+  const markStrategist = (state: "touched" | "sent") =>
+    setStrategist((s) => (s && s.state !== state && s.state !== "sent" ? { ...s, state } : s));
   useEffect(() => {
     if (!scrollToForm) return;
     const form = document.getElementById("strategist-form");
     form?.scrollIntoView({ behavior: "smooth", block: "start" });
     form?.querySelector<HTMLInputElement>("input:not([type=hidden]), textarea")?.focus({ preventScroll: true });
   }, [scrollToForm]);
-  const strategistForm = strategistAt !== null && (
+  const strategistForm = strategist && (
     <div id="strategist-form" className="scroll-mt-4">
-      <HandoffForm offer={{ topic: "strategy_call", summary: STRATEGY_CALL_SUMMARY }} />
+      <HandoffForm
+        key={strategist.key}
+        offer={{ topic: "strategy_call", summary: STRATEGY_CALL_SUMMARY }}
+        onTouched={() => markStrategist("touched")}
+        onSent={() => markStrategist("sent")}
+        onClose={strategist.state === "sent" ? undefined : () => setStrategist(null)}
+      />
     </div>
   );
+
+  // A visitor who opens the form but starts chatting instead has changed their
+  // mind: an untouched form closes, so it doesn't sit above the conversation
+  // claiming a context it never had. One they've typed in stays.
+  const send = (text: string) => {
+    if (strategist?.state === "untouched") setStrategist(null);
+    void sendMessage({ text });
+  };
 
   // Back to the welcome screen. Stop first so a reply still streaming can't
   // land in the fresh conversation. Handoff forms reset because they unmount.
   const restart = () => {
     if (busy) void stop();
     setMessages([]);
-    setStrategistAt(null);
+    setStrategist(null);
     clearError();
     document.getElementById("chat-input")?.focus();
   };
@@ -158,7 +176,11 @@ export function Chat() {
               messages={messages}
               showTyping={status === "submitted"}
               streaming={busy}
-              inserted={strategistForm ? { after: strategistAt ?? 0, node: strategistForm } : undefined}
+              inserted={
+                strategist
+                  ? { after: strategist.at, node: strategistForm, open: strategist.state !== "sent" }
+                  : undefined
+              }
               footer={
                 error && (
                   <ErrorBanner

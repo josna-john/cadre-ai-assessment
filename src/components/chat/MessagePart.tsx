@@ -1,8 +1,9 @@
 import type { UIMessage } from "ai";
+import { useContext } from "react";
 import { z } from "zod";
 import { actionIdSchema, resolveActions } from "@/lib/actions";
 import { clipSummary, handoffToolInputSchema } from "@/lib/handoff";
-import { ActionButtons, ActionPlaceholder, isActionsOutput } from "./ActionButtons";
+import { ActionButtons, ActionPlaceholder, OpenStrategistContext, isActionsOutput } from "./ActionButtons";
 import { HandoffFallback, HandoffForm, isHandoffOffer } from "./HandoffForm";
 import { Markdown } from "./Markdown";
 
@@ -28,6 +29,7 @@ export function MessagePart({
   role,
   hasHandoff = false,
   citesSpecifics = false,
+  formAbove = false,
   finished = true,
 }: {
   part: Part;
@@ -35,8 +37,12 @@ export function MessagePart({
   hasHandoff?: boolean;
   // The reply cites an industry page or a case study's card (see MessageList).
   citesSpecifics?: boolean;
+  // A strategist form the visitor opened is still unsent above this reply, so
+  // a handoff offer points to it instead of adding a second form (D19).
+  formAbove?: boolean;
   finished?: boolean;
 }) {
+  const openStrategist = useContext(OpenStrategistContext);
   const withoutBooking = (actions: ReturnType<typeof resolveActions>) =>
     actions.filter((a) => !(hasHandoff && a.id === "book_call") && !(citesSpecifics && a.id === "case_studies"));
 
@@ -65,6 +71,20 @@ export function MessagePart({
       return null;
 
     case "tool-offer_handoff":
+      if (formAbove && openStrategist && (part.state === "output-available" || part.state === "input-available")) {
+        return (
+          <p className="text-sm text-ink-600">
+            Your form above goes to the same team. Add this question there and send it.{" "}
+            <button
+              type="button"
+              onClick={openStrategist}
+              className="font-medium text-cadre-red underline decoration-cadre-red/35 underline-offset-[3px] hover:decoration-cadre-red"
+            >
+              Go to the form
+            </button>
+          </p>
+        );
+      }
       if (part.state === "output-available") {
         return isHandoffOffer(part.output) ? <HandoffForm offer={part.output} /> : <HandoffFallback />;
       }

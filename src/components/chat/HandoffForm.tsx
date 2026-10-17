@@ -60,7 +60,19 @@ const TEXT_FIELDS = ["firstName", "lastName", "email", "company", "note"] as con
 const input =
   "w-full rounded-xl border border-hairline bg-white px-3 py-2 text-sm text-ink focus:border-cadre-red/50 focus:outline-none focus:ring-2 focus:ring-cadre-red/20 aria-[invalid=true]:border-red-500";
 
-export function HandoffForm({ offer }: { offer: HandoffOffer }) {
+export function HandoffForm({
+  offer,
+  onTouched,
+  onSent,
+  onClose,
+}: {
+  offer: HandoffOffer;
+  // For the strategist form (D19): the page closes an untouched form when the
+  // visitor starts chatting instead, and shows a close button.
+  onTouched?: () => void;
+  onSent?: () => void;
+  onClose?: () => void;
+}) {
   const messages = useContext(ConversationContext);
   const sent = useContext(SentDetailsContext);
   const prefill = sent.details;
@@ -145,6 +157,7 @@ export function HandoffForm({ offer }: { offer: HandoffOffer }) {
       });
       if (res.ok) {
         sent.remember(details);
+        onSent?.();
         return setState({ kind: "sent", name: details.firstName });
       }
 
@@ -177,13 +190,28 @@ export function HandoffForm({ offer }: { offer: HandoffOffer }) {
   return (
     <form
       onSubmit={submit}
+      onInput={onTouched}
       noValidate
       aria-labelledby={`${id}-title`}
       className="animate-rise space-y-3 rounded-card border border-hairline bg-sand-dark p-4"
     >
-      <p id={`${id}-title`} className="font-heading text-base font-semibold tracking-[-0.3px] text-ink">
-        {strategist ? "Talk to an AI strategist" : <>Send this to Cadre AI&apos;s team</>}
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <p id={`${id}-title`} className="font-heading text-base font-semibold tracking-[-0.3px] text-ink">
+          {strategist ? "Talk to an AI strategist" : <>Send this to Cadre AI&apos;s team</>}
+        </p>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close this form"
+            className="-mt-1 -mr-1 flex size-7 shrink-0 items-center justify-center rounded-full text-ink-600 transition-colors hover:bg-white hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ink"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true" className="size-3.5 fill-none stroke-current stroke-[1.75]">
+              <path d="M4 4l8 8M12 4l-8 8" strokeLinecap="round" />
+            </svg>
+          </button>
+        )}
+      </div>
 
       {strategist ? (
         <p className="text-sm text-ink-600">

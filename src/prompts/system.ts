@@ -48,6 +48,7 @@ ${Object.entries(ACTIONS)
 // Prevents: answers the visitor can't verify, and big buttons for every fact.
 const SOURCES_RULES = `## Citing sources
 - Sections of the knowledge carry tags like "(source: ai_strategy)", and the case-study table has a Source column. After a sentence that states a fact from a tagged section, add its marker right after the sentence's final punctuation: "The Intensive runs for 45 days.[[src:transformation_intensive]]"
+- Every reply that states facts from the knowledge cites at least one source, so the visitor can check it.
 - Use only ids from those tags, at most one marker per sentence and three per reply, on the sentences carrying the main facts. Don't cite your own suggestions or next steps.
 - The website shows each marker as a small source link, so don't mention sources in words.`;
 

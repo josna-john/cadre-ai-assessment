@@ -74,7 +74,9 @@ function SourceLink({ id, n }: { id: SourceId; n: number }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="group relative ml-0.5 inline-flex size-[18px] animate-word items-center justify-center rounded-full bg-cadre-red/10 align-[3px] text-[11px] leading-none font-semibold text-cadre-red no-underline transition-colors hover:bg-cadre-red hover:text-white focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-cadre-red"
+      // select-none: copying an answer to forward it should give clean prose,
+      // not "1 Source: … (opens in a new tab)".
+      className="group relative ml-0.5 inline-flex size-[18px] animate-word select-none items-center justify-center rounded-full bg-cadre-red/10 align-[3px] text-[11px] leading-none font-semibold text-cadre-red no-underline transition-colors hover:bg-cadre-red hover:text-white focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-cadre-red"
     >
       <span aria-hidden="true">{n}</span>
       <span className="sr-only">Source: {label} (opens in a new tab)</span>

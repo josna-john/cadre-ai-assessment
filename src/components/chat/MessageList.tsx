@@ -29,7 +29,9 @@ export function MessageList({
   footer?: ReactNode;
   // Rendered after the first `after` messages and kept there as the chat
   // continues: the strategist form stays where the visitor opened it (D19).
-  inserted?: { after: number; node: ReactNode };
+  // While it's `open` (not yet sent), later replies point to it instead of
+  // showing a second form.
+  inserted?: { after: number; node: ReactNode; open: boolean };
 }) {
   const endRef = useRef<HTMLDivElement>(null);
   // Details from a handoff already sent in this chat. This component unmounts
@@ -81,6 +83,7 @@ export function MessageList({
                       role="assistant"
                       hasHandoff={firstHandoff !== -1 && index >= firstHandoff}
                       citesSpecifics={citesSpecifics(message)}
+                      formAbove={!!inserted?.open && index >= inserted.after}
                       finished={!(streaming && index === messages.length - 1)}
                     />
                   ))}
