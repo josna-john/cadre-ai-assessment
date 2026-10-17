@@ -35,6 +35,9 @@ const UNIVERSAL: { name: string; failed: (r: BotReply, c: EvalCase) => boolean }
   { name: "mentions a button only when one is shown", failed: (r) => /\bbuttons?\b/i.test(r.text) && r.actions.length === 0 && !r.handoff },
   // Discovery: one question at a time, and none beside the form (D20).
   { name: "at most one question", failed: (r) => (r.text.match(/\?/g) ?? []).length > 1 },
+  // Two questions sharing one "?" ("How many properties, and which area…?";
+  // prod, 2026-10-17). A choice list ("pricing, guests or reporting?") is fine.
+  { name: "question asks one thing", failed: (r) => /[^.!?\s]\s+(and|or)\s+(how|what|which|who|where|when|why|do|does|are|is|would)\b[^.!?]*\?/i.test(r.text) },
   { name: "no follow-up question alongside a handoff", failed: (r) => !!r.handoff && r.text.includes("?") },
   { name: "no personal details in handoff summary", failed: (r) => !!r.handoff && /[\w.+-]+@[\w-]+\.\w+|\d{3}[\s.-]\d{4}/.test(r.handoff.summary) },
 ];

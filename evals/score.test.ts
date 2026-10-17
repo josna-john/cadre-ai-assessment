@@ -96,6 +96,10 @@ describe("score", () => {
     expect(score({ ...base, followUp: true }, { text: ok, actions: [] })).toEqual(["asks no follow-up question"]);
     expect(score({ ...base, followUp: false }, { text: asks, actions: [] })).toEqual(["unexpected follow-up question"]);
     expect(score(base, { text: asks + " And how big is it?", actions: [] })).toEqual(["at most one question"]);
+    const compound = ok + " How many properties do you have, and which area takes the most time?";
+    expect(score(base, { text: compound, actions: [] })).toEqual(["question asks one thing"]);
+    const choice = ok + " Which takes the most time: pricing, guest communications or reporting?";
+    expect(score(base, { text: choice, actions: [] })).toEqual([]);
     const offer = { topic: "pricing" as const, summary: "Wants pricing for a 12-hotel group." };
     expect(score(base, { text: asks, actions: [], handoff: offer })).toEqual(["no follow-up question alongside a handoff"]);
     expect(score({ ...base, summaryIncludesAny: ["hotel"] }, { text: ok, actions: [], handoff: offer })).toEqual([]);

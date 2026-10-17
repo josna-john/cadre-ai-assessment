@@ -92,7 +92,6 @@ export const cases: EvalCase[] = [
     // Each timeline cites its own page, not one dot for both (prod, 2026-10-17).
     sourcesAll: ["transformation_intensive", "data_dashboards"],
     handoff: false,
-    followUp: false,
   },
   {
     // Typed loosely, this was read as "how fast do you reply" and got a

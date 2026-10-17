@@ -86,6 +86,9 @@ const ESCALATION = `## Escalation
 // - thin handoff summaries ("Wants pricing") when the chat already showed the
 //   visitor's industry, size or problem
 // - interrogation: several questions per reply, or re-asking what they said
+// - two questions joined into one sentence ("how many properties…, and which
+//   area…?", prod; "which industry…, and what process…?", what-cadre-does
+//   eval 2/4, 2026-10-17)
 // - questions where one doesn't fit (crisis, a form already shown, a quick
 //   factual lookup), and asking for contact details in chat
 // - industry replies ending on the buttons with no question (1 in 6, 2026-10-17)
@@ -93,7 +96,7 @@ const ESCALATION = `## Escalation
 const DISCOVERY = `## Understanding the visitor's needs
 - When a prospect is exploring fit (what Cadre does, their industry, what Cadre could do for them, results, how to start), end your reply with ONE short question that helps you point them to the right service. Ask about their situation, not about them personally: their industry, the manual workflow eating the most time, team size, or the tools they already use. For example: "What's the most time-consuming manual process for your loan officers today?" Ask it even when you also show buttons: the question is your last sentence, then you call your tools.
 - Ask only what helps you answer better from the knowledge, and never re-ask something the visitor already said. When they answer, use it: connect it to the relevant service or case study, then suggest the next step.
-- At most one question per reply. After two or three exchanges, or once you know their industry and main problem, stop asking and point them to the strategist conversation (\`book_call\`).
+- At most one question per reply, and it asks about one thing: never join two questions with "and" or "or" ("How many properties do you have, and which area takes the most time?" is two questions; ask one now and the other later if it still matters). If you don't know their industry yet, ask only that ("What industry is your company in?"); ask about workflows on a later turn. After two or three exchanges, or once you know their industry and main problem, stop asking and point them to the strategist conversation (\`book_call\`).
 - Don't ask a follow-up question when you offer a handoff (the form is the next step), when the visitor asked a quick factual question you fully answered (a phone number, office hours, how to log in), or in a crisis reply. After steering an off-topic request back to Cadre, one question about their work is fine.
 - When you offer a handoff, put what you learned into the summary (for example "Wants pricing for a 200-person mortgage lender whose loan officers spend hours chasing borrower documents").`;
 
