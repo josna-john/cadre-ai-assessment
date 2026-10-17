@@ -8,7 +8,9 @@ import { ActionButtons } from "./ActionButtons";
 import type { PhoneValue } from "./PhoneField";
 import {
   HANDOFF_TOPICS,
+  NOTE_REQUIRED,
   handoffOfferSchema,
+  noteRequired,
   transcriptOf,
   validateField,
   type HandoffFormField,
@@ -62,6 +64,10 @@ export function HandoffForm({ offer }: { offer: HandoffOffer }) {
   const messages = useContext(ConversationContext);
   const sent = useContext(SentDetailsContext);
   const prefill = sent.details;
+  // Opened from a "Talk to an AI strategist" button (D19). With no chat yet,
+  // "How can we help you?" is the only context the team gets, so it's required.
+  const strategist = offer.topic === "strategy_call";
+  const needsNote = noteRequired(offer.topic, transcriptOf(messages));
   const [state, setState] = useState<State>({ kind: "editing" });
   const [errors, setErrors] = useState<FieldErrors>({});
   const phone = useRef<PhoneValue>({ value: prefill?.phone ?? "" });
@@ -70,7 +76,9 @@ export function HandoffForm({ offer }: { offer: HandoffOffer }) {
   if (state.kind === "sent") {
     return (
       <p role="status" className="rounded-card border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-        Thanks, {state.name}. We&apos;ve passed your question to Cadre AI&apos;s team.
+        {strategist
+          ? <>Thanks, {state.name}. Cadre AI&apos;s team will follow up by email to set up a time with a strategist.</>
+          : <>Thanks, {state.name}. We&apos;ve passed your question to Cadre AI&apos;s team.</>}
       </p>
     );
   }
@@ -103,6 +111,7 @@ export function HandoffForm({ offer }: { offer: HandoffOffer }) {
       if (err) found[f] = err;
     }
     if (phone.current.error) found.phone = phone.current.error;
+    if (needsNote && !field("note")) found.note = NOTE_REQUIRED;
     setErrors(found);
     // Fields in on-screen order, so focus lands on the first problem.
     const firstInvalid = (["firstName", "lastName", "email", "phone", "company", "note"] as const).find((f) => found[f]);
@@ -173,18 +182,25 @@ export function HandoffForm({ offer }: { offer: HandoffOffer }) {
       className="animate-rise space-y-3 rounded-card border border-hairline bg-sand-dark p-4"
     >
       <p id={`${id}-title`} className="font-heading text-base font-semibold tracking-[-0.3px] text-ink">
-        Send this to Cadre AI&apos;s team
+        {strategist ? "Talk to an AI strategist" : <>Send this to Cadre AI&apos;s team</>}
       </p>
 
-      {/* The model's summary is the lead's "How can we help?" message. It's
-          third-person, so it's shown as-is rather than as an editable field
-          the visitor would read as their own words. */}
-      <div className="rounded-xl bg-white/70 px-3 py-2.5">
-        <p className="text-xs font-medium text-ink-600">
-          What we&apos;ll send the team · {HANDOFF_TOPICS[offer.topic]}
+      {strategist ? (
+        <p className="text-sm text-ink-600">
+          Share a few details and Cadre AI&apos;s team will follow up by email to set up a time.
+          {!needsNote && " Our chat so far is included, so they'll have the context."}
         </p>
-        <p className="mt-1 text-sm text-ink-800">{offer.summary}</p>
-      </div>
+      ) : (
+        // The model's summary is the lead's "How can we help?" message. It's
+        // third-person, so it's shown as-is rather than as an editable field
+        // the visitor would read as their own words.
+        <div className="rounded-xl bg-white/70 px-3 py-2.5">
+          <p className="text-xs font-medium text-ink-600">
+            What we&apos;ll send the team · {HANDOFF_TOPICS[offer.topic]}
+          </p>
+          <p className="mt-1 text-sm text-ink-800">{offer.summary}</p>
+        </div>
+      )}
 
       {prefill && (
         <p className="text-xs text-ink-600">We&apos;ve filled in the details you gave earlier. Change anything that&apos;s different.</p>
@@ -217,8 +233,15 @@ export function HandoffForm({ offer }: { offer: HandoffOffer }) {
       <Field id={`${id}-company`} label="Company name" required error={errors.company}>
         <input {...textInput("company")} autoComplete="organization" required maxLength={200} />
       </Field>
-      <Field id={`${id}-note`} label="Anything to add? (optional)" error={errors.note}>
-        <textarea {...textInput("note")} rows={2} maxLength={1000} />
+      {/* Cadre's contact form asks "How can we help you?"; with no chat, it's
+          the team's only context, so it's required then (D19). */}
+      <Field
+        id={`${id}-note`}
+        label={strategist ? (needsNote ? "How can we help you?" : "How can we help you? (optional)") : "Anything to add? (optional)"}
+        required={needsNote}
+        error={errors.note}
+      >
+        <textarea {...textInput("note")} required={needsNote} rows={needsNote ? 3 : 2} maxLength={1000} />
       </Field>
 
       {/* Honeypot: hidden from people and screen readers; bots tend to fill it. */}
@@ -235,7 +258,9 @@ export function HandoffForm({ offer }: { offer: HandoffOffer }) {
       )}
 
       <p className="text-xs text-ink-600">
-        Your details and this conversation are shared with Cadre AI&apos;s team so they can reply.
+        {needsNote
+          ? <>Your details are shared with Cadre AI&apos;s team so they can reply.</>
+          : <>Your details and this conversation are shared with Cadre AI&apos;s team so they can reply.</>}
       </p>
       <button
         type="submit"
@@ -290,7 +315,8 @@ export function HandoffFallback() {
   return (
     <div className="space-y-2 text-sm">
       <p>The form couldn&apos;t load. You can reach Cadre AI&apos;s team directly:</p>
-      <ActionButtons actions={resolveActions(["email_team", "book_call"])} />
+      {/* Links, not the in-chat form: the form is what just failed. */}
+      <ActionButtons actions={resolveActions(["email_team", "book_call"])} external />
     </div>
   );
 }

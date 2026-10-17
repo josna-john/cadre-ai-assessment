@@ -1,22 +1,35 @@
 "use client";
 
 import type { UIMessage } from "ai";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { citedSources } from "@/lib/sources";
 import { CadreLogo } from "./CadreLogo";
 import { ConversationContext, SentDetailsContext, type ContactDetails } from "./HandoffForm";
 import { MessagePart } from "./MessagePart";
+
+// A reply that cites an industry page or a case study's card already links its
+// specifics, so the generic "See case studies" button would be a weaker
+// duplicate. The prompt asks for this; this is the deterministic backstop.
+const citesSpecifics = (message: UIMessage) =>
+  citedSources(message.parts.map((p) => (p.type === "text" ? p.text : "")).join(" ")).some(
+    (id) => id.startsWith("industry_") || id.startsWith("case_study_"),
+  );
 
 export function MessageList({
   messages,
   showTyping,
   streaming,
   footer,
+  inserted,
 }: {
   messages: UIMessage[];
   showTyping: boolean;
   // The last reply is still arriving.
   streaming: boolean;
   footer?: ReactNode;
+  // Rendered after the first `after` messages and kept there as the chat
+  // continues: the strategist form stays where the visitor opened it (D19).
+  inserted?: { after: number; node: ReactNode };
 }) {
   const endRef = useRef<HTMLDivElement>(null);
   // Details from a handoff already sent in this chat. This component unmounts
@@ -45,9 +58,11 @@ export function MessageList({
           aria-label="Conversation"
           className="space-y-6"
         >
-          {messages.map((message, index) =>
-            message.role === "user" ? (
-              <div key={message.id} className="flex animate-rise justify-end">
+          {inserted?.after === 0 && inserted.node}
+          {messages.map((message, index) => (
+            <Fragment key={message.id}>
+            {message.role === "user" ? (
+              <div className="flex animate-rise justify-end">
                 <div className="max-w-[85%] rounded-card rounded-br-md bg-ink px-4 py-2.5 text-white">
                   <span className="sr-only">You said: </span>
                   {message.parts.map((part, i) => (
@@ -56,7 +71,7 @@ export function MessageList({
                 </div>
               </div>
             ) : (
-              <AssistantRow key={message.id}>
+              <AssistantRow>
                 <div className="min-w-0 flex-1 space-y-3 sm:max-w-[90%] sm:flex-none rounded-card rounded-tl-md bg-white px-4 py-3 leading-relaxed text-ink-800 shadow-pill">
                   <span className="sr-only">Assistant: </span>
                   {message.parts.map((part, i) => (
@@ -65,13 +80,16 @@ export function MessageList({
                       part={part}
                       role="assistant"
                       hasHandoff={firstHandoff !== -1 && index >= firstHandoff}
+                      citesSpecifics={citesSpecifics(message)}
                       finished={!(streaming && index === messages.length - 1)}
                     />
                   ))}
                 </div>
               </AssistantRow>
-            ),
-          )}
+            )}
+            {inserted?.after === index + 1 && inserted.node}
+            </Fragment>
+          ))}
 
           {showTyping && (
             <AssistantRow>

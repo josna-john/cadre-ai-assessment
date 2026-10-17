@@ -18,25 +18,25 @@
 ## Who Cadre works with
 <!-- src: https://cadre.ai/industries -->
 - Industries: Professional Services, Private Equity, Real Estate, Financial Services, Mortgage & Lending, Construction, Retail & E-commerce, Manufacturing & Logistics, Hospitality.
-- Each industry has its own page of agents Cadre offers for it. When a visitor names one of these industries, show that industry's action (below) instead of `case_studies`, usually with `book_call`. Mention the two or three agents most relevant to the visitor, not the whole list, and describe them as ones Cadre offers for that industry, not as work delivered for a particular client.
+- Each industry has its own page of agents Cadre offers for it, tagged as its source below. When a visitor names one of these industries, cite that page, and show `book_call` rather than `case_studies`. Mention the two or three agents most relevant to the visitor, not the whole list, and describe them as ones Cadre offers for that industry, not as work delivered for a particular client.
 <!-- src: https://cadre.ai/industries/professional-services -->
-- Professional Services (`industry_professional_services`): Client Proposal Automator ("generate winning proposals in hours not days"), Contract Review Accelerator ("flag risks and anomalies in contracts instantly"), Client Status Updater, Research Brief Compiler, Utilization Optimizer ("maximize billable hours across your team").
+- Professional Services: Client Proposal Automator ("generate winning proposals in hours not days"), Contract Review Accelerator ("flag risks and anomalies in contracts instantly"), Client Status Updater, Research Brief Compiler, Utilization Optimizer ("maximize billable hours across your team").
 <!-- src: https://cadre.ai/industries/private-equity -->
-- Private Equity (`industry_private_equity`): CIM Analyst ("parse CIMs and surface risks in minutes"), Deal Sourcer, Due Diligence Analyst, Data Room Analyst, Investment Committee Prep ("auto-create IC memos and decision decks"), NDA Analyst ("auto-redline NDAs to firm standards"), Predictive Portco Performance.
+- Private Equity: CIM Analyst ("parse CIMs and surface risks in minutes"), Deal Sourcer, Due Diligence Analyst, Data Room Analyst, Investment Committee Prep ("auto-create IC memos and decision decks"), NDA Analyst ("auto-redline NDAs to firm standards"), Predictive Portco Performance.
 <!-- src: https://cadre.ai/industries/real-estate -->
-- Real Estate (`industry_real_estate`): Comp Analysis Automator ("generate property comps in seconds"), Lead Scoring Optimizer, Market Alert Monitor, Pricing Strategy Advisor, Showing Scheduler ("optimize showing routes and timing").
+- Real Estate: Comp Analysis Automator ("generate property comps in seconds"), Lead Scoring Optimizer, Market Alert Monitor, Pricing Strategy Advisor, Showing Scheduler ("optimize showing routes and timing").
 <!-- src: https://cadre.ai/industries/financial-services -->
-- Financial Services (`industry_financial_services`): KYC Automation Accelerator ("complete client verification in minutes"), Client Risk Assessor, Client Retention Predictor, Portfolio Recommendation Advisor, Regulatory Change Tracker ("stay ahead of compliance requirements"), Client Communication Scheduler.
+- Financial Services: KYC Automation Accelerator ("complete client verification in minutes"), Client Risk Assessor, Client Retention Predictor, Portfolio Recommendation Advisor, Regulatory Change Tracker ("stay ahead of compliance requirements"), Client Communication Scheduler.
 <!-- src: https://cadre.ai/industries/mortgage-lending -->
-- Mortgage & Lending (`industry_mortgage_lending`): Automated Underwriter ("underwrite loans in minutes not days"), Document Verification Accelerator ("verify income and assets instantly"), Loan Validator, Rate Lock Optimizer, Client Update Notifier.
+- Mortgage & Lending: Automated Underwriter ("underwrite loans in minutes not days"), Document Verification Accelerator ("verify income and assets instantly"), Loan Validator, Rate Lock Optimizer, Client Update Notifier.
 <!-- src: https://cadre.ai/industries/construction -->
-- Construction (`industry_construction`): connects project, accounting and payroll data so every project's budget and actuals are in one view, current every morning; daily reconciliation that catches change orders never booked; estimating from past job costs; subcontractor scorecards.
+- Construction: connects project, accounting and payroll data so every project's budget and actuals are in one view, current every morning; daily reconciliation that catches change orders never booked; estimating from past job costs; subcontractor scorecards.
 <!-- src: https://cadre.ai/industries/retail-e-commerce -->
-- Retail & E-commerce (`industry_retail_ecommerce`): Checkout Flow Optimizer ("reduce cart abandonment at every step"), Customer Loyalty Accelerator, Demand Forecasting Analyzer, Email Campaign Optimizer, Support Response Automator ("resolve common inquiries instantly").
+- Retail & E-commerce: Checkout Flow Optimizer ("reduce cart abandonment at every step"), Customer Loyalty Accelerator, Demand Forecasting Analyzer, Email Campaign Optimizer, Support Response Automator ("resolve common inquiries instantly").
 <!-- src: https://cadre.ai/industries/manufacturing-logistics -->
-- Manufacturing & Logistics (`industry_manufacturing_logistics`): Predictive Maintenance Scheduler ("prevent failures before they cause downtime"), Production Schedule Optimizer, Smart Inventory Optimizer, Supplier Performance Tracker, Waste Reduction Tracker.
+- Manufacturing & Logistics: Predictive Maintenance Scheduler ("prevent failures before they cause downtime"), Production Schedule Optimizer, Smart Inventory Optimizer, Supplier Performance Tracker, Waste Reduction Tracker.
 <!-- src: https://cadre.ai/industries/hospitality -->
-- Hospitality (`industry_hospitality`): Dynamic Pricing Optimizer ("maximize revenue with real-time pricing"), Demand Forecasting Optimizer, Guest Preference Manager, Review Response Generator, Upsell Opportunity Detector.
+- Hospitality: Dynamic Pricing Optimizer ("maximize revenue with real-time pricing"), Demand Forecasting Optimizer, Guest Preference Manager, Review Response Generator, Upsell Opportunity Detector.
 <!-- src: https://cadre.ai/departments -->
 - Departments: Sales, Marketing, Customer Success, Executive Leadership, Finance, Operations, Technology, Legal.
 <!-- src: https://cadre.ai (FAQ); https://cadre.ai/strategy -->

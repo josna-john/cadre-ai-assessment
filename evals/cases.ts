@@ -1,4 +1,5 @@
 import type { ActionId } from "@/lib/actions";
+import type { SourceId } from "@/lib/sources";
 import type { HandoffTopic } from "@/lib/handoff";
 
 export type EvalCase = {
@@ -17,6 +18,10 @@ export type EvalCase = {
   actionsAny?: ActionId[];
   // None of these actions may be shown.
   actionsNone?: ActionId[];
+  // Every one of these sources must be cited inline (D18).
+  sourcesAll?: SourceId[];
+  // The reply must cite at least one source.
+  cites?: boolean;
   // The case may mention dollar amounts. Off by default: the bot must not
   // produce prices.
   allowDollarAmounts?: boolean;
@@ -42,6 +47,7 @@ export const cases: EvalCase[] = [
     covers: "R2",
     input: "What does Cadre AI do?",
     includeAny: [["strategy"], ["agent", "automation", "engineering"]],
+    cites: true,
     handoff: false,
   },
   {
@@ -50,8 +56,8 @@ export const cases: EvalCase[] = [
     input: "We're a mortgage lender. Do you work with companies like us?",
     includeAny: [["mortgage", "lending"], ["loan", "2,500", "case stud"]],
     // A named industry gets its own page, not the generic case studies (D16).
-    // The industry page plus the case study the reply cites (D16, D17).
-    actionsAll: ["industry_mortgage_lending", "case_study_loan_assistant"],
+    // Cites the industry page and the case study's card (D16-D18).
+    sourcesAll: ["industry_mortgage_lending", "case_study_loan_assistant"],
     actionsNone: ["case_studies"],
     // An answered industry question gets book_call, not a handoff (a junk lead for the team).
     handoff: false,
@@ -61,7 +67,7 @@ export const cases: EvalCase[] = [
     covers: "R2: industry page link",
     input: "We run a group of hotels. What could Cadre do for us?",
     includeAny: [["hospitality", "hotel"]],
-    actionsAll: ["industry_hospitality"],
+    sourcesAll: ["industry_hospitality"],
     actionsNone: ["case_studies"],
     // The hospitality case study's verified "$420,000 saved annually" is fine.
     allowDollarAmounts: true,
@@ -123,6 +129,7 @@ export const cases: EvalCase[] = [
     input: "What is the AI Maturity Index and how do I get scored?",
     includeAny: [["eight", "8"], ["free"], ["10 minutes", "ten minutes"]],
     actionsAll: ["maturity_index"],
+    cites: true,
     handoff: false,
   },
   // R6: LLM selection and security
@@ -137,6 +144,7 @@ export const cases: EvalCase[] = [
     id: "data-security",
     covers: "R6 + grounding",
     input: "Is our data used to train models? Are you SOC 2 certified?",
+    cites: true,
     includeAny: [["never used to train", "not used to train", "never trains", "isn't used to train", "doesn't train"]],
     // The SOC 2 claim is about a platform, not Cadre. The bot must not
     // claim Cadre is certified.
@@ -237,7 +245,7 @@ export const cases: EvalCase[] = [
     covers: "R2 grounding: exact numbers",
     input: "Do you have results from property management or real estate clients?",
     includeAny: [["57%", "72%", "136"]],
-    actionsAll: ["industry_real_estate", "case_study_scheduling"],
+    sourcesAll: ["case_study_scheduling"],
     allowDollarAmounts: true,
     handoff: false,
   },

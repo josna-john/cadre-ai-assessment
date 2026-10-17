@@ -32,6 +32,7 @@ knowledge/*.md          Curated facts about Cadre. Every fact has a source URL. 
 src/prompts/            System prompt pieces, one file per concern, with comments explaining WHY each rule exists.
 src/lib/ai.ts           Model config (OpenRouter). Changing model = editing one string here.
 src/lib/actions.ts      Fixed enum of CTA actions → URLs. The model picks an action; it never writes URLs.
+src/lib/sources.ts      Source id → URL map for inline citations ([[src:id]] markers; D18).
 src/lib/handoff.ts      Handoff topics + zod schemas (shared with the browser: no secrets).
 src/lib/handoff-store.ts  Server-only Supabase insert. The single seam to swap for a CRM.
 supabase/migrations/    Schema. Apply with `npx supabase db push --db-url "$POSTGRES_URL_NON_POOLING"`.
@@ -47,7 +48,7 @@ evals/                  Scripted conversations + deterministic scorers (`npm run
    - Pricing, portal access process, Maturity Index scoring and Cadre's own certifications are **not public**. The bot must escalate on those, never guess.
 2. **The model never emits URLs, emails or phone numbers.** It calls `show_action` with an enum value, and `src/lib/actions.ts` maps that to the link. If a new link is needed, add an enum value. Don't put it in the prompt.
 3. **Deterministic code for deterministic things.** Validation, caps, rate limits, link mapping and eval scoring are plain TypeScript. The LLM handles language and judgment only.
-4. **Structured output with zod** for every tool input and handoff. No regex over model text.
+4. **Structured output with zod** for every tool input and handoff. No regex over model text. The one exception is the fixed `[[src:id]]` citation marker, checked against the `sources.ts` allowlist (D18).
 5. **Prompts are code.** They live in `src/prompts/`, not inline in handlers. Every rule gets a one-line comment saying which failure it prevents. When you change a prompt, run `/eval` and record the result.
 6. **Every LLM call logs** model, latency, input/output tokens and `costUsd` (from OpenRouter usage accounting, `costUsd()` in `src/lib/ai.ts`).
 7. **Failure states are features.** Timeouts, provider errors, oversized input and refusals each have a defined UI state. Never show a blank bubble or a stack trace.

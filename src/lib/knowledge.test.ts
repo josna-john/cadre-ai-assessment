@@ -1,10 +1,28 @@
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { loadKnowledge, stripComments } from "./knowledge";
+import { loadKnowledge, sourceUrls, stripComments } from "./knowledge";
+import { sourceIdForUrl } from "./sources";
 import { buildSystemPrompt } from "@/prompts/system";
 
 describe("knowledge", () => {
-  it("strips source comments, including multi-line ones", () => {
-    expect(stripComments("a\n<!-- src: https://x.y -->\nb\n<!--\nmulti\n-->\nc")).toBe("a\n\nb\n\nc");
+  it("strips other comments, including multi-line ones", () => {
+    expect(stripComments("a\n<!--\nmulti\n-->\nc")).toBe("a\n\nc");
+  });
+
+  it("turns source comments into citable ids, dropping URLs with no source page", () => {
+    expect(stripComments("<!-- src: https://cadre.ai/strategy; https://cadre.ai/ai-transformation-intensive -->\nfact")).toBe(
+      "(source: ai_strategy, transformation_intensive)\nfact",
+    );
+    expect(stripComments("<!-- src: https://x.y -->\nfact")).toBe("fact");
+  });
+
+  it("has a citable source page for every URL the KB cites", () => {
+    // Every fact can show its source to the visitor, not just to maintainers.
+    const urls = readdirSync("knowledge")
+      .filter((f) => f.endsWith(".md"))
+      .flatMap((f) => sourceUrls(readFileSync(`knowledge/${f}`, "utf8")));
+    expect(urls.length).toBeGreaterThan(20);
+    expect(urls.filter((u) => !sourceIdForUrl(u))).toEqual([]);
   });
 
   it("loads every KB file and gives the model no raw URLs or emails", () => {

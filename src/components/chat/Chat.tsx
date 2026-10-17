@@ -1,8 +1,12 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
+import { useEffect, useState } from "react";
 import { ACTIONS } from "@/lib/actions";
+import { STRATEGY_CALL_SUMMARY } from "@/lib/handoff";
+import { OpenStrategistContext } from "./ActionButtons";
 import { CadreLogo } from "./CadreLogo";
+import { HandoffForm } from "./HandoffForm";
 import { Composer } from "./Composer";
 import { ErrorBanner } from "./ErrorBanner";
 import { friendlyErrorMessage } from "./errors";
@@ -25,16 +29,40 @@ export function Chat() {
   const busy = status === "submitted" || status === "streaming";
   const send = (text: string) => void sendMessage({ text });
 
+  // "Talk to an AI strategist" opens the chat's own lead form instead of
+  // leaving for cadre.ai/contact (D19). It appears after the messages so far
+  // and stays there; clicking again scrolls back to it rather than adding a
+  // second one.
+  const [strategistAt, setStrategistAt] = useState<number | null>(null);
+  const [scrollToForm, setScrollToForm] = useState(0);
+  const openStrategist = () => {
+    setStrategistAt((at) => at ?? messages.length);
+    setScrollToForm((n) => n + 1);
+  };
+  useEffect(() => {
+    if (!scrollToForm) return;
+    const form = document.getElementById("strategist-form");
+    form?.scrollIntoView({ behavior: "smooth", block: "start" });
+    form?.querySelector<HTMLInputElement>("input:not([type=hidden]), textarea")?.focus({ preventScroll: true });
+  }, [scrollToForm]);
+  const strategistForm = strategistAt !== null && (
+    <div id="strategist-form" className="scroll-mt-4">
+      <HandoffForm offer={{ topic: "strategy_call", summary: STRATEGY_CALL_SUMMARY }} />
+    </div>
+  );
+
   // Back to the welcome screen. Stop first so a reply still streaming can't
   // land in the fresh conversation. Handoff forms reset because they unmount.
   const restart = () => {
     if (busy) void stop();
     setMessages([]);
+    setStrategistAt(null);
     clearError();
     document.getElementById("chat-input")?.focus();
   };
 
   return (
+    <OpenStrategistContext.Provider value={openStrategist}>
     <div className="flex h-dvh w-full flex-col">
       <header className="border-t-[3px] border-b border-t-cadre-red border-b-hairline bg-sand-dark">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
@@ -62,15 +90,13 @@ export function Chat() {
                 New chat
               </button>
             )}
-            <a
-              href={ACTIONS.book_call.href}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={openStrategist}
               className="hidden rounded-full bg-ink px-4 py-2 text-sm tracking-[-0.14px] text-white transition-colors hover:bg-ink-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:inline-block"
             >
               {ACTIONS.book_call.label}
-              <span className="sr-only"> (opens in a new tab)</span>
-            </a>
+            </button>
           </div>
         </div>
       </header>
@@ -125,12 +151,14 @@ export function Chat() {
                   </button>
                 ))}
               </div>
+              {strategistForm}
             </section>
           ) : (
             <MessageList
               messages={messages}
               showTyping={status === "submitted"}
               streaming={busy}
+              inserted={strategistForm ? { after: strategistAt ?? 0, node: strategistForm } : undefined}
               footer={
                 error && (
                   <ErrorBanner
@@ -151,5 +179,6 @@ export function Chat() {
         </div>
       </div>
     </div>
+    </OpenStrategistContext.Provider>
   );
 }

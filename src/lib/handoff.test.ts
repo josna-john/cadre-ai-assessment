@@ -3,8 +3,11 @@ import {
   HANDOFF_SUMMARY_MAX,
   HANDOFF_TOPICS,
   HANDOFF_TRANSCRIPT_TURNS,
+  NOTE_REQUIRED,
+  STRATEGY_CALL_SUMMARY,
   clipSummary,
   handoffSubmissionSchema,
+  modelHandoffTopicSchema,
   transcriptOf,
   validateField,
 } from "./handoff";
@@ -52,6 +55,22 @@ describe("handoffSubmissionSchema", () => {
     expect(handoffSubmissionSchema.safeParse({ ...valid, topic: "urgent_vip" }).success).toBe(false);
   });
 
+  it("requires a note for a strategist request only when there's no chat for context", () => {
+    const strategist = { ...valid, topic: "strategy_call", summary: STRATEGY_CALL_SUMMARY };
+    const noChat = handoffSubmissionSchema.safeParse({ ...strategist, transcript: [] });
+    expect(noChat.error?.issues.map((i) => [i.path[0], i.message])).toEqual([["note", NOTE_REQUIRED]]);
+    expect(handoffSubmissionSchema.safeParse({ ...strategist, transcript: [], note: "Automating our intake" }).success).toBe(true);
+    // The chat gives the team context, so the note stays optional.
+    expect(handoffSubmissionSchema.safeParse(strategist).success).toBe(true);
+    // Other topics never require it.
+    expect(handoffSubmissionSchema.safeParse({ ...valid, transcript: [] }).success).toBe(true);
+  });
+
+  it("keeps the strategist topic out of the model's choices", () => {
+    expect(modelHandoffTopicSchema.safeParse("strategy_call").success).toBe(false);
+    expect(modelHandoffTopicSchema.safeParse("pricing").success).toBe(true);
+  });
+
   it("caps the transcript so the form can't be used to store bulk data", () => {
     const transcript = Array.from({ length: HANDOFF_TRANSCRIPT_TURNS + 1 }, () => ({ role: "user", text: "hi" }));
     expect(handoffSubmissionSchema.safeParse({ ...valid, transcript }).success).toBe(false);
@@ -79,8 +98,12 @@ describe("HANDOFF_TOPICS", () => {
   it("matches the CHECK constraint in the migration (a drift would make inserts fail)", async () => {
     const { readdirSync, readFileSync } = await import("node:fs");
     const dir = "supabase/migrations";
-    const sql = readdirSync(dir).map((f) => readFileSync(`${dir}/${f}`, "utf8")).join("\n");
-    const list = /topic in \(([^)]*)\)/.exec(sql)?.[1] ?? "";
+    const sql = readdirSync(dir)
+      .sort()
+      .map((f) => readFileSync(`${dir}/${f}`, "utf8"))
+      .join("\n");
+    // The latest definition wins: a later migration may replace the constraint.
+    const list = [...sql.matchAll(/topic in \(([^)]*)\)/g)].at(-1)?.[1] ?? "";
     const inSql = [...list.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
     expect(inSql.sort()).toEqual(Object.keys(HANDOFF_TOPICS).sort());
   });

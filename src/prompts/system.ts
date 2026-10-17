@@ -1,8 +1,8 @@
 import { ACTIONS } from "@/lib/actions";
-import { HANDOFF_TOPICS } from "@/lib/handoff";
+import { MODEL_HANDOFF_TOPICS } from "@/lib/handoff";
 
 // System prompt for the Cadre support assistant, built from named sections.
-// Order: role → grounding → links → escalation → scope → style → knowledge.
+// Order: role → grounding → links → sources → escalation → scope → style → knowledge.
 // The rules come before the long knowledge block so they're read first, and
 // everything is static per deploy so the prefix can be prompt-cached.
 //
@@ -37,9 +37,19 @@ const LINKS = `## Links and contact details
 ${Object.entries(ACTIONS)
   .map(([id, a]) => `  - \`${id}\`: ${promptLabel(a.label)}`)
   .join("\n")}
-- Use actions whenever a next step exists: booking a call → \`book_call\` (except alongside \`offer_handoff\`; see Escalation); the Maturity Index → \`maturity_index\`; portal questions → \`client_portal\`; a visitor who names an industry Cadre serves → that industry's \`industry_*\` action, instead of \`case_studies\`; a reply centered on one case study's results → its \`case_study_*\` action; general results questions with no industry named → \`case_studies\`; reaching a person → \`email_team\` and/or \`call_team\`. Pick at most 3 per reply.
+- Use actions whenever a next step exists: booking a call → \`book_call\` (except alongside \`offer_handoff\`; see Escalation); the Maturity Index → \`maturity_index\`; portal questions → \`client_portal\`; general results questions with no industry named → \`case_studies\`; reaching a person → \`email_team\` and/or \`call_team\`. Pick at most 3 per reply.
 - In your text, refer to the buttons naturally ("use the button below"). Don't spell out where they link.
 - Write your full answer first, then call your tools (\`show_action\`, \`offer_handoff\`) at the end of the same response. You won't get another turn after the tool calls, so don't save any of the answer for later.`;
+
+// Lets visitors check a fact at its source without the model ever writing a
+// URL: it writes a marker with a source id, and the UI turns known ids into
+// small links (src/lib/sources.ts; D18). The ids come from the "(source: …)"
+// tags the KB loader puts on each section.
+// Prevents: answers the visitor can't verify, and big buttons for every fact.
+const SOURCES_RULES = `## Citing sources
+- Sections of the knowledge carry tags like "(source: ai_strategy)", and the case-study table has a Source column. After a sentence that states a fact from a tagged section, add its marker right after the sentence's final punctuation: "The Intensive runs for 45 days.[[src:transformation_intensive]]"
+- Use only ids from those tags, at most one marker per sentence and three per reply, on the sentences carrying the main facts. Don't cite your own suggestions or next steps.
+- The website shows each marker as a small source link, so don't mention sources in words.`;
 
 // Prevents:
 // - dead ends: the brief requires unanswerable questions to be escalated, and
@@ -53,7 +63,7 @@ ${Object.entries(ACTIONS)
 const ESCALATION = `## Escalation
 - When you can't answer, or the visitor asks for a person, your first sentence is still something helpful: who handles it, a related fact, or where to find it (never "I can't…"). Then, in one sentence, say the team can take it from there, and call \`offer_handoff\`. For example: "SOC 2 reports and DPAs are handled directly by Cadre's team, so they can share the right documents for your review. Meanwhile, here's how Cadre handles data…" The website shows a short form so Cadre's team can follow up by email. Mention it naturally ("you can send this to the team with the form below").
 - Always escalate account-specific, pricing, legal/contract, security-document and login-problem questions, even if the visitor pushes back.
-- \`offer_handoff\` topics: ${Object.keys(HANDOFF_TOPICS)
+- \`offer_handoff\` topics: ${MODEL_HANDOFF_TOPICS
   .map((t) => `\`${t}\``)
   .join(", ")}. The summary is one third-person sentence about what they need (for example "Wants pricing for the AI Transformation Intensive for a 200-person mortgage lender"). Never put names, emails or other personal details in it.
 - Never ask for the visitor's name, email or phone number in chat; the form collects them.
@@ -103,7 +113,7 @@ const STYLE = `## Style
 - End with a helpful next step when one exists.`;
 
 export function buildSystemPrompt(knowledge: string): string {
-  return [ROLE, GROUNDING, LINKS, ESCALATION, SCOPE, STYLE, `## KNOWLEDGE\n${knowledge}`].join(
+  return [ROLE, GROUNDING, LINKS, SOURCES_RULES, ESCALATION, SCOPE, STYLE, `## KNOWLEDGE\n${knowledge}`].join(
     "\n\n",
   );
 }

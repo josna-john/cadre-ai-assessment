@@ -1,4 +1,5 @@
 import type { ActionId } from "@/lib/actions";
+import { citedSources, isSourceId, markerIds, stripMarkers } from "@/lib/sources";
 import type { EvalCase } from "./cases";
 
 import type { HandoffOffer } from "@/lib/handoff";
@@ -40,11 +41,21 @@ function hasRepeatedOpening(text: string): boolean {
 
 // Returns the list of failed checks. An empty list means pass. Names are
 // human-readable so failures can be triaged without re-running.
-export function score(c: EvalCase, reply: BotReply): string[] {
+export function score(c: EvalCase, raw: BotReply): string[] {
   const failures: string[] = [];
+  // Wording and length checks read the prose the visitor sees; citation
+  // markers are UI syntax (D18).
+  const reply = { ...raw, text: stripMarkers(raw.text) };
   const lower = reply.text.toLowerCase();
+  const sources = citedSources(raw.text);
 
   for (const check of UNIVERSAL) if (check.failed(reply, c)) failures.push(check.name);
+  const unknown = markerIds(raw.text).filter((id) => !isSourceId(id));
+  if (unknown.length) failures.push(`unknown source ids: ${unknown.join(", ")}`);
+  for (const id of c.sourcesAll ?? []) {
+    if (!sources.includes(id)) failures.push(`missing source: ${id}`);
+  }
+  if (c.cites && sources.length === 0) failures.push("cites no source");
 
   for (const group of c.includeAny ?? []) {
     if (!group.some((p) => lower.includes(p.toLowerCase()))) failures.push(`missing any of: ${group.join(" | ")}`);

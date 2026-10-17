@@ -1,23 +1,34 @@
 // Verifies: a real POST lands in the table, the public key can't read it, then cleans up.
-// Run from the repo: node --env-file=.env.local <this file> <baseUrl>
+// Run from the repo: node --env-file=.env.local <this file> <baseUrl> [strategy]
+// With "strategy", sends a strategist request with no chat (D19): first
+// without the required note (expects 400), then with it.
 import { createClient } from "@supabase/supabase-js";
 
 const base = process.argv[2] ?? "http://localhost:3000";
+const strategy = process.argv[3] === "strategy";
 const marker = `verify-${Date.now()}`;
 
-const res = await fetch(`${base}/api/handoff`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    topic: "pricing",
-    summary: `Automated check ${marker}`,
-    firstName: "Test",
-    lastName: "Runner",
-    email: "test@example.com",
-    company: "Verify Script",
-    transcript: [{ role: "user", text: "How much does it cost?" }],
-  }),
-});
+const post = (extra) =>
+  fetch(`${base}/api/handoff`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      topic: strategy ? "strategy_call" : "pricing",
+      summary: `Automated check ${marker}`,
+      firstName: "Test",
+      lastName: "Runner",
+      email: "test@example.com",
+      company: "Verify Script",
+      transcript: strategy ? [] : [{ role: "user", text: "How much does it cost?" }],
+      ...extra,
+    }),
+  });
+
+if (strategy) {
+  const missing = await post({});
+  console.log("POST without note:", missing.status, await missing.text());
+}
+const res = await post(strategy ? { note: "Automating our intake process" } : {});
 console.log("POST status:", res.status, await res.text());
 
 const admin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, { auth: { persistSession: false } });

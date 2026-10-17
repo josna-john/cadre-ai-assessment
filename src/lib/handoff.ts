@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { stripMarkers } from "./sources";
 
 // Escalation to Cadre's team. The flow has two halves, and the model only
 // touches the first:
@@ -22,12 +23,23 @@ export const HANDOFF_TOPICS = {
   account_specific: "Your account",
   partnership_legal: "Contracts & partnerships",
   other: "General question",
+  // Opened by a "Talk to an AI strategist" button, never by the model (D19).
+  strategy_call: "Talk to an AI strategist",
 } as const;
 
 export const handoffTopicSchema = z.enum(
   Object.keys(HANDOFF_TOPICS) as [keyof typeof HANDOFF_TOPICS, ...(keyof typeof HANDOFF_TOPICS)[]],
 );
 export type HandoffTopic = z.infer<typeof handoffTopicSchema>;
+
+// The topics the model may pick for `offer_handoff`. `strategy_call` is left
+// out: booking a strategist is the `book_call` button, which opens that form.
+export const modelHandoffTopicSchema = handoffTopicSchema.exclude(["strategy_call"]);
+export const MODEL_HANDOFF_TOPICS = modelHandoffTopicSchema.options;
+
+// What a strategist form opened from a button sends as its summary. The model
+// writes the summary for every other topic.
+export const STRATEGY_CALL_SUMMARY = "Would like to talk to an AI strategist.";
 
 export const HANDOFF_SUMMARY_MAX = 300;
 
@@ -42,7 +54,7 @@ export type HandoffOffer = z.infer<typeof handoffOfferSchema>;
 // execute() rather than failing the tool call, which would leave the visitor
 // with "use the form below" and no form.
 export const handoffToolInputSchema = z.object({
-  topic: handoffTopicSchema,
+  topic: modelHandoffTopicSchema,
   summary: z.string().trim().min(1),
 });
 
@@ -106,8 +118,23 @@ export const handoffSubmissionSchema = handoffOfferSchema.extend({
   // Honeypot: hidden from people, often filled in by bots. A non-empty value
   // is accepted silently but not saved.
   website: z.string().max(200).optional(),
+}).superRefine((h, ctx) => {
+  // A strategist request straight from the header, with no chat to give
+  // context, would reach the team as just a name. Make the visitor say what
+  // it's about, as Cadre's own contact form does (D19).
+  if (!h.note && noteRequired(h.topic, h.transcript)) {
+    ctx.addIssue({ code: "custom", path: ["note"], message: NOTE_REQUIRED });
+  }
 });
 export type HandoffSubmission = z.infer<typeof handoffSubmissionSchema>;
+
+export const NOTE_REQUIRED = "Please tell us what you'd like to discuss.";
+
+// The strategist form asks "How can we help you?" and requires it when there's
+// no chat yet; the form and the server both use this.
+export function noteRequired(topic: HandoffTopic, transcript: HandoffSubmission["transcript"]): boolean {
+  return topic === "strategy_call" && !transcript.some((t) => t.role === "user");
+}
 
 // Fields a person types, so the form can highlight them. Errors anywhere else
 // mean the request itself is broken, and retrying won't help.
@@ -134,7 +161,8 @@ export function transcriptOf(
       role: m.role,
       text: safeSlice(
         m.parts
-          .map((p) => (p.type === "text" && p.text ? p.text : ""))
+          // Source markers are UI syntax; the team reads plain prose.
+          .map((p) => (p.type === "text" && p.text ? stripMarkers(p.text) : ""))
           .filter(Boolean)
           .join("\n"),
         TRANSCRIPT_TEXT_MAX,

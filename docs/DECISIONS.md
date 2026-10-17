@@ -247,6 +247,25 @@ One entry per meaningful architectural choice: what was chosen, what was rejecte
 - **Trade-off / cost:** text fragments are a browser feature: Chrome, Edge and Safari support them, and Firefox added support recently. Without support the link opens the top of the page, which is the old behavior. If Cadre rewords a card, its link falls back the same way, so the phrases need re-checking when the page changes.
 - **Revisit when:** Cadre adds per-case-study pages or anchors, or the case studies page is redesigned.
 
+### D18: Facts carry small inline source links; buttons are for next steps
+- **Context:** visitors could only check a fact when a big button happened to point at its page, and services, security and company facts had none. Every KB fact already had a source URL, but only maintainers could see it.
+- **Decision:**
+  - `src/lib/sources.ts` holds every citable page (services, industries, case-study cards, articles, About, contact), all fetched on 2026-10-16.
+  - The KB loader turns each `<!-- src: URL -->` comment into a tag like `(source: ai_strategy)`, so the model sees ids, never URLs.
+  - The model writes `[[src:id]]` after a fact. The renderer swaps known ids for a small chip ("Mortgage & Lending ↗") next to the sentence; unknown ids render nothing, and a marker still streaming in stays hidden. The team's transcript and the eval's wording checks strip markers.
+  - Industry pages and case-study cards moved from buttons to citations. Red buttons are now only next steps (strategist, Maturity Index, portal, contact, all case studies). A reply that cites an industry or case study hides the generic "See case studies" button in code.
+  - A unit test fails if any URL the KB cites has no source page, so a new fact can't ship without a visible source.
+- **Alternatives considered:** a citation tool call (rejected: tools run at the end of the reply, so they can't sit next to a sentence); letting the model write markdown links (rejected: breaks D3, the model would write URLs).
+- **Trade-off / cost:** this is the one place model text is pattern-matched, against a fixed grammar and an allowlist; CLAUDE.md's "no regex over model text" rule is about extracting decisions, and this extracts only ids that code already owns. The prompt grew by about 900 tokens, all cached. The model chooses which sentences to cite, so coverage per reply varies; the evals require citations on the core factual cases.
+- **Revisit when:** the KB moves to retrieval. Then each retrieved chunk can carry its source id the same way.
+
+### D19: "Talk to an AI strategist" opens the chat's own lead form
+- **Context:** the strategist button sent visitors to cadre.ai/contact, a second form asking for the same details the chat's handoff form already collects (D10). The chat can replace it and keep the conversation as context.
+- **Decision:** every strategist button (header and in-chat) opens the handoff form in the chat with a new `strategy_call` topic. It appears after the messages so far and stays there; clicking again scrolls to it. With no chat yet, "How can we help you?" is required, enforced in the form and by the server's schema; with a chat, the transcript is the context and the note is optional. The model can't choose `strategy_call` (its topic enum excludes it); booking stays the `book_call` button. If the form fails, the fallback links to cadre.ai/contact. Migration `20261017030000` adds the topic; verified end to end with `scripts/verify-handoff.mjs <url> strategy` (400 without the note, 201 with it, RLS still blocks the public key).
+- **Alternatives considered:** keeping the external link (rejected: two forms for one lead, and the chat's context is lost); a modal (rejected: the inline form matches how handoffs already appear).
+- **Trade-off / cost:** strategist leads land in the handoffs table, not Cadre's CRM. That's the same seam as every handoff (`saveHandoff()`), listed under Next steps.
+- **Revisit when:** Cadre adds a self-serve calendar. Then the form's success state could offer a booking link.
+
 ## Eval log
 | Date | SHA | Model | Pass rate | Cost | Notes |
 |---|---|---|---|---|---|
@@ -265,6 +284,7 @@ One entry per meaningful architectural choice: what was chosen, what was rejecte
 | 2026-10-16 | 94a2e3b + D15 | claude-haiku-5.5 | 20/21 → 21/21 | about $0.013 incl. reruns | Source-talk check widened to "matching", "listed", "knowledge base", "my knowledge". First run caught "my knowledge doesn't include a headcount" (`unknown-fact`); added a positive example for unknown details (deliberately not about headcount). Reruns: `unknown-fact` 4/4, industry cases 6/6. Final 21/21. p50 2.0 s, p95 3.7 s |
 | 2026-10-16 | aae929d + D16 | claude-haiku-5.5 | 20/23 → 22/23 | about $0.017 incl. reruns | Nine industry actions, two new cases (`industry-listed-hospitality`, `results-no-industry`) and an `actionsNone` scorer field. First run: mortgage also showed `case_studies` (a leftover KB line said to); hospitality cited the verified $420,000 case-study figure (scorer false alarm, case now allows it). Fixed the KB line; industry reruns 11/12, the miss again an extra `case_studies`, so `resolveActions` now drops it deterministically. Final 22/23. The miss is `everything-in-detail` over 1,200 chars, now 3 of the last 4 full runs as the KB grows: worth tightening. p50 2.1 s, p95 3.5 s |
 | 2026-10-16 | aae929d + D17 | claude-haiku-5.5 | 22/23 | about $0.010 incl. reruns | Eight `case_study_*` actions (text-fragment links to each card). Mortgage, hospitality and real-estate replies showed the industry page + the cited case study + `book_call`; the general results question kept `case_studies`. Industry, case-study and fallback cases 12/12 on reruns. The miss is again `everything-in-detail` over 1,200 chars. p50 2.0 s, p95 3.2 s |
+| 2026-10-17 | 8c9c533 + D18/D19 | claude-haiku-5.5 | 22/23 | $0.0052 (+$0.0005 local browser check) | Inline citations: scorer strips markers for wording checks, fails unknown source ids, and `sourcesAll` / `cites` fields require citations (mortgage cites the industry page and the case-study card; what-cadre-does, data-security and maturity-index must cite something). All pass. Strategist form is UI-only, no eval impact. The miss is `everything-in-detail` over 1,200 chars. p50 1.9 s, p95 2.9 s |
 
 ---
 

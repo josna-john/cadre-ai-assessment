@@ -2,7 +2,7 @@
 
 ## Booking a call with an AI strategist
 <!-- src: https://cadre.ai/contact (every "Talk to an AI Strategist" CTA links here) -->
-- To talk to an AI strategist, fill in the contact form on Cadre's website. Cadre has no public self-serve calendar: every "Talk to an AI Strategist" button leads to the contact form, and the team follows up to schedule.
+- To talk to an AI strategist, use the `book_call` button: it opens a short form right here in the chat, asking for the same details as Cadre's contact form, and the team follows up by email to schedule. Cadre has no public self-serve calendar.
 - The form asks for first and last name, company name, work email, an optional phone number, and "How can we help you?"
 - Show the `book_call` action. You can also show `email_team` or `call_team`.
 - Don't promise a response time: the team confirms timing when they reply.

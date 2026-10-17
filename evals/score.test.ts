@@ -28,8 +28,18 @@ describe("score", () => {
 
   it("fails an action the case forbids", () => {
     const c: EvalCase = { ...base, actionsNone: ["case_studies"] };
-    expect(score(c, { text: ok, actions: ["industry_hospitality"] })).toEqual([]);
+    expect(score(c, { text: ok, actions: ["book_call"] })).toEqual([]);
     expect(score(c, { text: ok, actions: ["case_studies"] })).toEqual(["unexpected action: case_studies"]);
+  });
+
+  it("checks citations, and scores wording on the prose without markers", () => {
+    const cited = "Cadre runs a 45-day AI Transformation Intensive.[[src:transformation_intensive]]";
+    expect(score({ ...base, sourcesAll: ["transformation_intensive"], cites: true }, { text: cited, actions: [] })).toEqual([]);
+    expect(score({ ...base, cites: true }, { text: ok, actions: [] })).toEqual(["cites no source"]);
+    expect(score({ ...base, sourcesAll: ["ai_agents"] }, { text: cited, actions: [] })).toEqual(["missing source: ai_agents"]);
+    expect(score(base, { text: ok + "[[src:made_up]]", actions: [] })).toEqual(["unknown source ids: made_up"]);
+    // A marker doesn't count toward the opening or exact-phrase checks.
+    expect(score({ ...base, includeAny: [["intensive."]] }, { text: cited, actions: [] })).toEqual([]);
   });
 
   it("flags links, emails, phone numbers and prices written into the text", () => {

@@ -27,15 +27,18 @@ export function MessagePart({
   part,
   role,
   hasHandoff = false,
+  citesSpecifics = false,
   finished = true,
 }: {
   part: Part;
   role: UIMessage["role"];
   hasHandoff?: boolean;
+  // The reply cites an industry page or a case study's card (see MessageList).
+  citesSpecifics?: boolean;
   finished?: boolean;
 }) {
   const withoutBooking = (actions: ReturnType<typeof resolveActions>) =>
-    hasHandoff ? actions.filter((a) => a.id !== "book_call") : actions;
+    actions.filter((a) => !(hasHandoff && a.id === "book_call") && !(citesSpecifics && a.id === "case_studies"));
 
   switch (part.type) {
     case "text":
