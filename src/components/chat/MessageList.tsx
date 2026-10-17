@@ -2,18 +2,20 @@
 
 import type { UIMessage } from "ai";
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { citedSources } from "@/lib/sources";
+import { SOURCES, citedSources, type SourceId } from "@/lib/sources";
 import { CadreLogo } from "./CadreLogo";
 import { ConversationContext, SentDetailsContext, type ContactDetails } from "./HandoffForm";
 import { MessagePart } from "./MessagePart";
 
+// Every source a reply cites, in order, across all its text parts.
+const sourcesOf = (message: UIMessage) =>
+  citedSources(message.parts.map((p) => (p.type === "text" ? p.text : "")).join(" "));
+
 // A reply that cites an industry page or a case study's card already links its
 // specifics, so the generic "See case studies" button would be a weaker
 // duplicate. The prompt asks for this; this is the deterministic backstop.
-const citesSpecifics = (message: UIMessage) =>
-  citedSources(message.parts.map((p) => (p.type === "text" ? p.text : "")).join(" ")).some(
-    (id) => id.startsWith("industry_") || id.startsWith("case_study_"),
-  );
+const citesSpecifics = (sources: SourceId[]) =>
+  sources.some((id) => id.startsWith("industry_") || id.startsWith("case_study_"));
 
 export function MessageList({
   messages,
@@ -65,7 +67,7 @@ export function MessageList({
             <Fragment key={message.id}>
             {message.role === "user" ? (
               <div className="flex animate-rise justify-end">
-                <div className="max-w-[85%] rounded-card rounded-br-md bg-ink px-4 py-2.5 text-white">
+                <div className="max-w-[85%] rounded-card rounded-br-md bg-ink px-4 py-3 leading-relaxed text-white sm:px-5">
                   <span className="sr-only">You said: </span>
                   {message.parts.map((part, i) => (
                     <MessagePart key={i} part={part} role="user" />
@@ -73,22 +75,12 @@ export function MessageList({
                 </div>
               </div>
             ) : (
-              <AssistantRow>
-                <div className="min-w-0 flex-1 space-y-3 sm:max-w-[90%] sm:flex-none rounded-card rounded-tl-md bg-white px-4 py-3 leading-relaxed text-ink-800 shadow-pill">
-                  <span className="sr-only">Assistant: </span>
-                  {message.parts.map((part, i) => (
-                    <MessagePart
-                      key={i}
-                      part={part}
-                      role="assistant"
-                      hasHandoff={firstHandoff !== -1 && index >= firstHandoff}
-                      citesSpecifics={citesSpecifics(message)}
-                      formAbove={!!inserted?.open && index >= inserted.after}
-                      finished={!(streaming && index === messages.length - 1)}
-                    />
-                  ))}
-                </div>
-              </AssistantRow>
+              <AssistantMessage
+                message={message}
+                hasHandoff={firstHandoff !== -1 && index >= firstHandoff}
+                formAbove={!!inserted?.open && index >= inserted.after}
+                finished={!(streaming && index === messages.length - 1)}
+              />
             )}
             {inserted?.after === index + 1 && inserted.node}
             </Fragment>
@@ -97,14 +89,14 @@ export function MessageList({
           {showTyping && (
             <AssistantRow>
               <div
-                className="flex items-center gap-1 rounded-card rounded-tl-md bg-white px-4 py-4 shadow-pill"
+                className="flex items-center gap-1.5 rounded-card rounded-tl-md bg-white px-5 py-[18px] shadow-pill"
                 aria-label="Assistant is typing"
                 role="status"
               >
                 {[0, 150, 300].map((delay) => (
                   <span
                     key={delay}
-                    className="size-2 animate-bounce rounded-full bg-cadre-red/50"
+                    className="size-2 animate-typing rounded-full bg-cadre-red"
                     style={{ animationDelay: `${delay}ms` }}
                   />
                 ))}
@@ -120,13 +112,71 @@ export function MessageList({
   );
 }
 
+function AssistantMessage({
+  message,
+  hasHandoff,
+  formAbove,
+  finished,
+}: {
+  message: UIMessage;
+  hasHandoff: boolean;
+  formAbove: boolean;
+  finished: boolean;
+}) {
+  const sources = sourcesOf(message);
+  return (
+    <AssistantRow>
+      <div className="min-w-0 flex-1 space-y-4 rounded-card rounded-tl-md bg-white px-5 py-4 leading-relaxed text-ink-800 shadow-[var(--shadow-pill),var(--shadow-card)] sm:max-w-[90%] sm:flex-none">
+        <span className="sr-only">Assistant: </span>
+        {message.parts.map((part, i) => (
+          <MessagePart
+            key={i}
+            part={part}
+            role="assistant"
+            hasHandoff={hasHandoff}
+            citesSpecifics={citesSpecifics(sources)}
+            formAbove={formAbove}
+            finished={finished}
+            sourceOrder={sources}
+          />
+        ))}
+        {/* The cited pages in one place, numbered like the dots in the text,
+            once the reply has finished (so the row doesn't reflow mid-stream). */}
+        {finished && sources.length > 0 && (
+          <div className="flex animate-rise flex-wrap items-center gap-2 border-t border-ink/5 pt-3.5">
+            <span className="mr-1 text-xs text-ink-600">Sources</span>
+            {sources.map((id, i) => (
+              <a
+                key={id}
+                href={SOURCES[id].href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-sand py-1 pr-3 pl-1 text-[13px] text-ink-800 ring-1 ring-hairline transition-colors hover:bg-sand-dark focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-cadre-red-dark"
+              >
+                <span
+                  aria-hidden="true"
+                  className="flex size-[22px] items-center justify-center rounded-full bg-cadre-red-tint text-[11px] font-semibold text-cadre-red-deep"
+                >
+                  {i + 1}
+                </span>
+                {SOURCES[id].label}
+                <span className="sr-only">(opens in a new tab)</span>
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    </AssistantRow>
+  );
+}
+
 // Assistant replies sit beside a small Cadre mark so it reads as Cadre talking.
 function AssistantRow({ children }: { children: ReactNode }) {
   return (
-    <div className="flex animate-rise items-start gap-2.5">
+    <div className="flex animate-rise items-start gap-3">
       <span
         aria-hidden="true"
-        className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-sand-dark text-ink ring-1 ring-cadre-red/30"
+        className="mt-0.5 flex size-[34px] shrink-0 items-center justify-center rounded-full bg-sand-dark text-ink ring-1 ring-cadre-red/30"
       >
         <CadreLogo className="h-4 w-auto" />
       </span>

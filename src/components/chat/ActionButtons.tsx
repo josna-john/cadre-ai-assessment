@@ -8,8 +8,14 @@ import type { ResolvedAction } from "@/lib/actions";
 // cadre.ai/contact, which is the fallback when the chat's own form can't be used.
 export const OpenStrategistContext = createContext<(() => void) | null>(null);
 
-const pill =
-  "inline-flex items-center gap-1.5 rounded-full bg-cadre-red px-4 py-3 text-sm sm:py-2 tracking-[-0.14px] text-white transition-colors hover:bg-cadre-red-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cadre-red";
+// The first action is the reply's main next step and gets the red fill; any
+// others are quieter sand pills, so a row of CTAs doesn't shout.
+const pillBase =
+  "inline-flex min-h-11 items-center gap-2 rounded-full px-5 text-sm tracking-[-0.14px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2";
+const pill = (primary: boolean) =>
+  primary
+    ? `${pillBase} bg-cadre-red-dark text-white hover:bg-cadre-red-deep focus-visible:outline-cadre-red-dark`
+    : `${pillBase} bg-sand-dark text-ink shadow-pill hover:bg-card-hover focus-visible:outline-ink`;
 
 // Tool output crosses the network as JSON, so check its shape before trusting it.
 export function isActionsOutput(output: unknown): output is { actions: ResolvedAction[] } {
@@ -33,10 +39,10 @@ export function ActionButtons({ actions, external: forceLinks = false }: { actio
   if (actions.length === 0) return null;
   return (
     <div className="flex animate-rise flex-wrap gap-2">
-      {actions.map((action) => {
+      {actions.map((action, i) => {
         if (action.id === "book_call" && openStrategist && !forceLinks) {
           return (
-            <button key={action.id} type="button" onClick={openStrategist} className={pill}>
+            <button key={action.id} type="button" onClick={openStrategist} className={pill(i === 0)}>
               {action.label}
               <span aria-hidden="true">→</span>
             </button>
@@ -48,7 +54,7 @@ export function ActionButtons({ actions, external: forceLinks = false }: { actio
             key={action.id}
             href={action.href}
             {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-            className={pill}
+            className={pill(i === 0)}
           >
             {action.label}
             <span aria-hidden="true">{external ? "↗" : "→"}</span>
@@ -64,7 +70,7 @@ export function ActionPlaceholder() {
   return (
     <div
       aria-hidden="true"
-      className="h-8 w-40 animate-pulse rounded-full bg-ink/5"
+      className="h-11 w-44 animate-pulse rounded-full bg-ink/5"
     />
   );
 }

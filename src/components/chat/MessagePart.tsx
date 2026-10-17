@@ -3,6 +3,7 @@ import { useContext } from "react";
 import { z } from "zod";
 import { actionIdSchema, resolveActions } from "@/lib/actions";
 import { clipSummary, handoffToolInputSchema } from "@/lib/handoff";
+import type { SourceId } from "@/lib/sources";
 import { ActionButtons, ActionPlaceholder, OpenStrategistContext, isActionsOutput } from "./ActionButtons";
 import { HandoffFallback, HandoffForm, isHandoffOffer } from "./HandoffForm";
 import { Markdown } from "./Markdown";
@@ -31,6 +32,7 @@ export function MessagePart({
   citesSpecifics = false,
   formAbove = false,
   finished = true,
+  sourceOrder,
 }: {
   part: Part;
   role: UIMessage["role"];
@@ -41,6 +43,8 @@ export function MessagePart({
   // a handoff offer points to it instead of adding a second form (D19).
   formAbove?: boolean;
   finished?: boolean;
+  // Sources cited across the whole reply, so citation numbers match (Markdown).
+  sourceOrder?: SourceId[];
 }) {
   const openStrategist = useContext(OpenStrategistContext);
   const withoutBooking = (actions: ReturnType<typeof resolveActions>) =>
@@ -50,7 +54,7 @@ export function MessagePart({
     case "text":
       // User text is shown verbatim; only assistant text gets markdown.
       return role === "assistant" ? (
-        <Markdown text={part.text} />
+        <Markdown text={part.text} sourceOrder={sourceOrder} />
       ) : (
         <p className="whitespace-pre-wrap">{part.text}</p>
       );
@@ -78,7 +82,7 @@ export function MessagePart({
             <button
               type="button"
               onClick={openStrategist}
-              className="font-medium text-cadre-red underline decoration-cadre-red/35 underline-offset-[3px] hover:decoration-cadre-red"
+              className="font-medium text-cadre-red-deep underline decoration-cadre-red/35 underline-offset-[3px] hover:decoration-cadre-red"
             >
               Go to the form
             </button>

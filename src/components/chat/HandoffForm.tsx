@@ -20,7 +20,7 @@ import {
 // Phone numbering rules are ~145 KB; load them only when a form appears.
 const PhoneField = dynamic(() => import("./PhoneField"), {
   ssr: false,
-  loading: () => <div aria-hidden="true" className="h-[38px] rounded-xl border border-hairline bg-white" />,
+  loading: () => <div aria-hidden="true" className="h-11 rounded-xl border border-hairline bg-white" />,
 });
 
 // The conversation so far, for the transcript attached to a handoff.
@@ -57,8 +57,9 @@ const CHECK_FIELDS = "Please check the highlighted fields.";
 
 const TEXT_FIELDS = ["firstName", "lastName", "email", "company", "note"] as const;
 
+// text-base below sm: iOS zooms the page into any input under 16px.
 const input =
-  "w-full rounded-xl border border-hairline bg-white px-3 py-2 text-sm text-ink focus:border-cadre-red/50 focus:outline-none focus:ring-2 focus:ring-cadre-red/20 aria-[invalid=true]:border-red-500";
+  "min-h-11 w-full rounded-xl border border-hairline bg-white px-3.5 py-2.5 text-base text-ink transition-shadow focus:border-cadre-red/55 focus:outline-none focus:ring-4 focus:ring-cadre-red/15 aria-[invalid=true]:border-red-600 sm:text-sm";
 
 export function HandoffForm({
   offer,
@@ -87,11 +88,21 @@ export function HandoffForm({
 
   if (state.kind === "sent") {
     return (
-      <p role="status" className="rounded-card border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-        {strategist
-          ? <>Thanks, {state.name}. Cadre AI&apos;s team will follow up by email to set up a time with a strategist.</>
-          : <>Thanks, {state.name}. We&apos;ve passed your question to Cadre AI&apos;s team.</>}
-      </p>
+      <div role="status" className="flex animate-rise items-start gap-3 rounded-card bg-white p-4 shadow-pill">
+        <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-50">
+          <svg viewBox="0 0 24 24" className="size-[18px] fill-none stroke-emerald-700 stroke-[2.2]">
+            <path d="M5 12.5l4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+        <div className="space-y-0.5 text-sm">
+          <p className="font-semibold text-ink">Sent</p>
+          <p className="leading-relaxed text-ink-800">
+            {strategist
+              ? <>Thanks, {state.name}. Cadre AI&apos;s team will follow up by email to set up a time with a strategist.</>
+              : <>Thanks, {state.name}. We&apos;ve passed your question to Cadre AI&apos;s team.</>}
+          </p>
+        </div>
+      </div>
     );
   }
 
@@ -193,18 +204,29 @@ export function HandoffForm({
       onInput={onTouched}
       noValidate
       aria-labelledby={`${id}-title`}
-      className="animate-rise space-y-3 rounded-card border border-hairline bg-sand-dark p-4"
+      className="animate-rise space-y-4 rounded-[1.5rem] border border-hairline bg-sand-dark p-5 shadow-card sm:p-6"
     >
       <div className="flex items-start justify-between gap-3">
-        <p id={`${id}-title`} className="font-heading text-base font-semibold tracking-[-0.3px] text-ink">
-          {strategist ? "Talk to an AI strategist" : <>Send this to Cadre AI&apos;s team</>}
-        </p>
+        <div className="flex items-center gap-3">
+          <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-cadre-red-dark">
+            <svg viewBox="0 0 24 24" className="size-5 fill-none stroke-white stroke-[1.8]">
+              <path d="M4 6h16v12H4z" strokeLinejoin="round" />
+              <path d="M4 7l8 6 8-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+          <div>
+            <p id={`${id}-title`} className="font-heading text-lg leading-tight font-semibold tracking-[-0.3px] text-ink">
+              {strategist ? "Talk to an AI strategist" : <>Send this to Cadre AI&apos;s team</>}
+            </p>
+            <p className="mt-0.5 text-[13px] text-ink-600">Goes straight to Cadre AI&apos;s inbound team</p>
+          </div>
+        </div>
         {onClose && (
           <button
             type="button"
             onClick={onClose}
             aria-label="Close this form"
-            className="-mt-1 -mr-1 flex size-7 shrink-0 items-center justify-center rounded-full text-ink-600 transition-colors hover:bg-white hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ink"
+            className="-mt-1.5 -mr-1.5 flex size-11 shrink-0 items-center justify-center rounded-full text-ink-600 transition-colors hover:bg-white hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ink"
           >
             <svg viewBox="0 0 16 16" aria-hidden="true" className="size-3.5 fill-none stroke-current stroke-[1.75]">
               <path d="M4 4l8 8M12 4l-8 8" strokeLinecap="round" />
@@ -222,11 +244,14 @@ export function HandoffForm({
         // The model's summary is the lead's "How can we help?" message. It's
         // third-person, so it's shown as-is rather than as an editable field
         // the visitor would read as their own words.
-        <div className="rounded-xl bg-white/70 px-3 py-2.5">
-          <p className="text-xs font-medium text-ink-600">
-            What we&apos;ll send the team · {HANDOFF_TOPICS[offer.topic]}
+        <div className="rounded-xl bg-white px-4 py-3 ring-1 ring-ink/5">
+          <p className="flex flex-wrap items-center gap-2 text-xs font-medium text-ink-600">
+            What we&apos;ll send the team
+            <span className="rounded-full bg-cadre-red-tint px-2 py-0.5 font-semibold text-cadre-red-deep">
+              {HANDOFF_TOPICS[offer.topic]}
+            </span>
           </p>
-          <p className="mt-1 text-sm text-ink-800">{offer.summary}</p>
+          <p className="mt-1.5 text-sm leading-relaxed text-ink-800">{offer.summary}</p>
         </div>
       )}
 
@@ -279,24 +304,38 @@ export function HandoffForm({
         <p role="alert" className="text-xs text-red-600">{state.message}</p>
       )}
       {state.kind === "unavailable" && (
-        <div role="alert" className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-          <p>{state.message}</p>
-          <ActionButtons actions={resolveActions(["email_team"])} />
+        <div role="alert" className="flex items-start gap-3 rounded-xl bg-white p-3 text-sm ring-1 ring-amber-200">
+          <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-full bg-amber-50">
+            <svg viewBox="0 0 24 24" className="size-4 fill-none stroke-amber-800 stroke-2">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v5l3 2" strokeLinecap="round" />
+            </svg>
+          </span>
+          <div className="space-y-2.5">
+            <p className="text-ink-800">{state.message}</p>
+            <ActionButtons actions={resolveActions(["email_team"])} />
+          </div>
         </div>
       )}
 
-      <p className="text-xs text-ink-600">
-        {needsNote
-          ? <>Your details are shared with Cadre AI&apos;s team so they can reply.</>
-          : <>Your details and this conversation are shared with Cadre AI&apos;s team so they can reply.</>}
-      </p>
-      <button
-        type="submit"
-        disabled={sending}
-        className="rounded-full bg-cadre-red px-5 py-3 text-sm sm:py-2 tracking-[-0.14px] text-white transition-colors hover:bg-cadre-red-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cadre-red disabled:opacity-60"
-      >
-        {sending ? "Sending…" : "Send to the team"}
-      </button>
+      <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
+        <p className="flex flex-[1_1_16rem] items-start gap-2 text-xs leading-relaxed text-ink-600">
+          <svg viewBox="0 0 24 24" aria-hidden="true" className="mt-px size-4 shrink-0 fill-none stroke-current stroke-[1.8]">
+            <rect x="5" y="11" width="14" height="9" rx="2" />
+            <path d="M8 11V8a4 4 0 018 0v3" strokeLinecap="round" />
+          </svg>
+          {needsNote
+            ? <>Your details are shared with Cadre AI&apos;s team so they can reply.</>
+            : <>Your details and this conversation are shared with Cadre AI&apos;s team so they can reply.</>}
+        </p>
+        <button
+          type="submit"
+          disabled={sending}
+          className="inline-flex min-h-12 items-center gap-2 rounded-full bg-cadre-red-dark px-6 text-[15px] font-medium tracking-[-0.14px] text-white transition-colors hover:bg-cadre-red-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cadre-red-dark disabled:opacity-60"
+        >
+          {sending ? "Sending…" : <>Send to the team <span aria-hidden="true">→</span></>}
+        </button>
+      </div>
     </form>
   );
 }
@@ -315,20 +354,20 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-1">
-      <label htmlFor={id} className="block text-xs font-medium text-ink-800">
+    <div className="space-y-1.5">
+      <label htmlFor={id} className="block text-[13px] font-medium text-ink-800">
         {label}
         {/* Visual cue only, in Cadre's red like cadre.ai's form; the input's
             `required` is what screen readers announce. */}
         {required && (
-          <span aria-hidden="true" className="ml-0.5 text-cadre-red">
+          <span aria-hidden="true" className="ml-0.5 text-cadre-red-dark">
             *
           </span>
         )}
       </label>
       {children}
       {error && (
-        <p id={`${id}-error`} className="text-xs text-red-600">
+        <p id={`${id}-error`} className="text-xs text-red-700">
           {error}
         </p>
       )}

@@ -100,7 +100,7 @@ export function Composer({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <div className="flex items-end gap-2 rounded-[1.75rem] bg-white p-2 shadow-pill focus-within:ring-2 focus-within:ring-cadre-red/30">
+      <div className="flex items-end gap-2 rounded-[1.75rem] bg-white p-2 shadow-[var(--shadow-pill),0_18px_40px_#0000000a] transition-shadow focus-within:shadow-[var(--shadow-pill),0_0_0_4px_#db45451f]">
         <label htmlFor="chat-input" className="sr-only">
           Ask a question about Cadre AI
         </label>
@@ -113,7 +113,7 @@ export function Composer({
             rows={1}
             aria-invalid={tooLong}
             aria-describedby="chat-input-hint"
-            className="field-sizing-content block max-h-40 min-h-10 w-full resize-none bg-transparent px-2 py-2.5 text-base text-ink outline-none sm:text-sm"
+            className="field-sizing-content block max-h-40 min-h-11 w-full resize-none bg-transparent px-3 py-3 text-base text-ink outline-none"
           />
           {/* A native placeholder can't animate, so the suggestion is drawn over the
               empty box, matching the textarea's padding and type exactly.
@@ -121,7 +121,7 @@ export function Composer({
           {empty && (
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0 truncate px-2 py-2.5 text-base text-ink-400 sm:text-sm"
+              className="pointer-events-none absolute inset-0 truncate px-3 py-3 text-base text-ink-400"
             >
               {hint}
             </div>
@@ -131,8 +131,9 @@ export function Composer({
           <button
             type="button"
             onClick={onStop}
-            className="h-10 rounded-full border border-hairline px-4 text-sm text-ink-800 transition-colors hover:bg-sand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            className="inline-flex h-11 items-center gap-2 rounded-full border border-hairline px-4 text-sm text-ink-800 transition-colors hover:bg-sand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
+            <span aria-hidden="true" className="size-2.5 rounded-[2px] bg-ink" />
             Stop
           </button>
         ) : (
@@ -140,7 +141,7 @@ export function Composer({
             type="submit"
             disabled={!canSend}
             aria-label="Send"
-            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-cadre-red text-white transition-colors hover:bg-cadre-red-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cadre-red disabled:cursor-not-allowed disabled:opacity-30"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-cadre-red-dark text-white transition-[background-color,opacity,scale] hover:bg-cadre-red-deep active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cadre-red-dark disabled:cursor-not-allowed disabled:opacity-30"
           >
             <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" className="size-5">
               <path

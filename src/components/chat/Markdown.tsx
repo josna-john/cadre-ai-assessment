@@ -76,7 +76,7 @@ function SourceLink({ id, n }: { id: SourceId; n: number }) {
       rel="noopener noreferrer"
       // select-none: copying an answer to forward it should give clean prose,
       // not "1 Source: … (opens in a new tab)".
-      className="group relative ml-0.5 inline-flex size-[18px] animate-word select-none items-center justify-center rounded-full bg-cadre-red/10 align-[3px] text-[11px] leading-none font-semibold text-cadre-red no-underline transition-colors hover:bg-cadre-red hover:text-white focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-cadre-red"
+      className="group relative ml-0.5 inline-flex h-5 min-w-5 animate-word select-none items-center justify-center rounded-full bg-cadre-red-tint px-1.5 align-[2px] text-[11px] leading-none font-semibold text-cadre-red-deep no-underline transition-colors hover:bg-cadre-red-dark hover:text-white focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-cadre-red-dark"
     >
       <span aria-hidden="true">{n}</span>
       <span className="sr-only">Source: {label} (opens in a new tab)</span>
@@ -116,8 +116,11 @@ function renderBold(text: string): ReactNode[] {
   );
 }
 
-export function Markdown({ text }: { text: string }) {
-  const numbers = new Map(citedSources(text).map((id, i) => [id, i + 1]));
+// `sourceOrder`: every source the whole reply cites, in order. A reply can
+// have several text parts (text before and after a tool call); numbering
+// across all of them keeps the dots in step with the reply's Sources row.
+export function Markdown({ text, sourceOrder }: { text: string; sourceOrder?: SourceId[] }) {
+  const numbers = new Map((sourceOrder ?? citedSources(text)).map((id, i) => [id, i + 1]));
   const inline = (t: string) => renderInline(t, numbers);
   return (
     <div className="space-y-3">
