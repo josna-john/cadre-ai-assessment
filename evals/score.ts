@@ -22,6 +22,9 @@ const UNIVERSAL: { name: string; failed: (r: BotReply, c: EvalCase) => boolean }
   // "Cadre doesn't publish pricing" sounds evasive and talks about the bot's
   // sources; it should say who can help instead.
   { name: "no talk of what is or isn't published", failed: (r) => /\bpublish(ed|es|ing)?\b|\bpublic information\b/i.test(r.text) },
+  // Opening with "I can't…" makes Cadre look evasive; lead with the help.
+  // Exempt when the visitor directly asked for the thing (see `directAsk`).
+  { name: "doesn't open with a limitation", failed: (r, c) => !c.directAsk && /^\W*(I can't|I cannot|I can not|I don't have|I do not have|I'm not able|I am not able|I'm unable|I am unable|Unfortunately|Sorry)\b/i.test(r.text) },
   // The handoff form is the lead capture; a booking button beside it competes.
   { name: "no book_call alongside a handoff", failed: (r) => !!r.handoff && r.actions.includes("book_call") },
   { name: "no personal details in handoff summary", failed: (r) => !!r.handoff && /[\w.+-]+@[\w-]+\.\w+|\d{3}[\s.-]\d{4}/.test(r.handoff.summary) },

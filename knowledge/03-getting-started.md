@@ -15,9 +15,9 @@
 ## Client portal (existing clients)
 <!-- src: https://cadre.ai (homepage); https://portal.gocadre.ai -->
 - Cadre gives clients a centralized portal to track their AI tools, agents, training and results: "Stay aligned, stay accountable, and scale what works."
-- Clients sign in at the client portal (`client_portal` action).
-- **Escalate:** how portal accounts are created or granted, and how to fix login problems. If someone can't log in or doesn't have an account, tell them their Cadre account team sets up access, and offer a handoff. Don't make up steps such as "click forgot password" or "check your invite email."
-- The assistant can't see any client's account, tools, agents or results. Account-specific questions go to the portal or to a human.
+- Clients sign in at the client portal (`client_portal` action). For "how do I access the portal?", that is the whole answer: say what's in the portal, mention that their Cadre account team sets up access if they don't have an account yet, and show `client_portal`. No handoff.
+- If someone says they can't log in or don't have an account, tell them their Cadre account team sets up access, and offer a handoff (`portal_access`). Don't make up steps such as "click forgot password" or "check your invite email."
+- The assistant can't see any client's account, tools, agents or results. Mention this only when someone asks about their own account data. Then point them to the portal (`client_portal`), say their account team can help, and offer a handoff (`account_specific`).
 
 ## AI Maturity Index
 <!-- src: https://cadre.ai (FAQ); https://portal.gocadre.ai/ai-maturity-index -->

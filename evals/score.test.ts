@@ -43,6 +43,14 @@ describe("score", () => {
     expect(score(base, { text: ok + " Pricing is something the team shares directly.", actions: [] })).toEqual([]);
   });
 
+  it("flags replies that open with a limitation, not ones that mention it later", () => {
+    const rule = "doesn't open with a limitation";
+    expect(score(base, { text: "I can't see client accounts, but " + ok, actions: [] })).toEqual([rule]);
+    expect(score(base, { text: "Unfortunately, " + ok, actions: [] })).toEqual([rule]);
+    expect(score(base, { text: ok + " I can't see account data, so the team can help.", actions: [] })).toEqual([]);
+    expect(score({ ...base, directAsk: true }, { text: "I can't see account data, but " + ok, actions: [] })).toEqual([]);
+  });
+
   it("allows dollar amounts only when the case opts in", () => {
     const text = ok + " One client saved $420,000 per year.";
     expect(score({ ...base, allowDollarAmounts: true }, { text, actions: [] })).toEqual([]);

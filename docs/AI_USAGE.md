@@ -97,6 +97,8 @@ A running log of how AI tools were used to build this project, with concrete exa
 
 - **Oct 16:** a KB rewording meant to stop the bot volunteering "the scoring method isn't something I can cover" ("don't mention scoring unless asked") regressed the `maturity-index` eval to 1/4: the eval asks "how do I get scored?", which the model read as a scoring-method question. The eval caught it before shipping; the fix states what "get scored" means explicitly. Lesson: negative instructions near a common phrasing change how the model reads that phrasing, so rerun the touched case several times, not once.
 
+- **Oct 16:** the prompt quoted bad phrasing as a don't-example (Don't hedge with phrases like "Cadre's published commitments"), and the model copied it into a security reply. The new universal eval check exposed it. Lesson: show the model what good looks like; quoting the phrase you want to avoid puts it in the model's mouth. Same root cause as the "not published" KB labels earlier the same day.
+
 ## What I'd do differently
 - **Probe real model behaviour on day one, not just types.** The three most expensive bugs (duplicate answers, caching silently off, the blank timeout bubble) all passed typecheck and unit tests. Each was found within minutes of looking at real usage numbers or a real stream. Next time, a one-call usage probe and a forced-failure test go in with the first route.
 - **Run the reviewer subagent earlier and on smaller diffs.** It found 22 real issues across three reviews, and the large ones would have been cheaper to catch per feature than per phase.

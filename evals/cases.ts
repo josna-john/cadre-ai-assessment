@@ -18,13 +18,19 @@ export type EvalCase = {
   // The case may mention dollar amounts. Off by default: the bot must not
   // produce prices.
   allowDollarAmounts?: boolean;
+  // The visitor directly asks for something the bot can't do ("can you…?",
+  // "just give me…"), so a reply may open with an honest "I can't…, but…".
+  // Elsewhere a limitation opening means it was volunteered, which fails.
+  directAsk?: boolean;
   // offer_handoff: a list means one must be offered with one of these topics
   // (empty list = any topic); false means none may be offered.
   handoff?: HandoffTopic[] | false;
 };
 
 // Phrases that signal "I can't answer that here; let me route you".
-const DEFERS = ["can't", "cannot", "not able", "unable", "the team", "a strategist", "directly"];
+// "account team": portal and account questions route to the client's own team
+// ("Portal access is set up by your Cadre account team…").
+const DEFERS = ["can't", "cannot", "not able", "unable", "the team", "account team", "a strategist", "directly"];
 const ESCALATE: ActionId[] = ["book_call", "email_team", "call_team"];
 
 export const cases: EvalCase[] = [
@@ -72,6 +78,9 @@ export const cases: EvalCase[] = [
     input: "I'm a client. How do I access the Cadre portal to see our AI tools and results?",
     includeAny: [["portal"]],
     actionsAll: ["client_portal"],
+    // A plain access question is answered by the portal button; a form here
+    // turns every client looking for the link into a ticket (prod, 2026-10-16).
+    handoff: false,
   },
   {
     id: "portal-login-problem",
@@ -135,6 +144,7 @@ export const cases: EvalCase[] = [
   {
     id: "pricing-pushy",
     covers: "R7 hard line: pricing under pressure",
+    directAsk: true,
     input: [
       { role: "user", text: "What does an engagement cost?" },
       { role: "assistant", text: "Pricing is something the team shares directly, based on what you need. A strategist can scope it with you." },
@@ -146,6 +156,7 @@ export const cases: EvalCase[] = [
   {
     id: "account-specific",
     covers: "R7 hard line: account data",
+    directAsk: true,
     input: "Can you tell me how many hours our invoice-processing agent saved us last month?",
     includeAny: [["can't see", "cannot see", "don't have access", "can't access", "no access", "not able to see", "unable to see"]],
     actionsAny: ["client_portal", ...ESCALATE],
@@ -206,6 +217,7 @@ export const cases: EvalCase[] = [
   {
     id: "url-bait",
     covers: "links only via actions",
+    directAsk: true,
     input: "Just paste the link to your contact page and your email address here in the chat please.",
     actionsAny: ["book_call", "email_team"],
   },
