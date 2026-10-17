@@ -13,11 +13,11 @@
   --color-ink-400: #999999;
   --color-hairline: #0000001a;
   --color-card-hover: #fffdf6;
-  /* Cadre's --cadre-blue, used only for things you can click (plus one headline word). */
-  --color-cadre-blue: #08749b;
-  --color-cadre-blue-dark: #065c7b;
-  /* Cadre's --cadre-red: the required-field asterisk, as on cadre.ai's forms. */
+  /* Cadre's --cadre-red: the one accent on cadre.ai's homepage (headline word,
+     badge). Used for things you can click, accent words and focus rings. */
   --color-cadre-red: #db4545;
+  /* Hover/pressed shade for red buttons, so white text stays readable. */
+  --color-cadre-red-dark: #c03535;
 
   --radius-card: 1.25rem;
 
@@ -35,7 +35,8 @@
 
   --animate-rise: rise 0.7s var(--ease-out-expo) both;
   --animate-word: word-in 0.45s ease-out both;
-  --animate-wave: wave 1.8s ease-in-out 0.5s both;
+  /* One ~1s wave, then the hand rests; repeats every 10s. */
+  --animate-wave: wave 10s ease-in-out 0.5s infinite both;
 
   /* Messages, cards and buttons slide up a few pixels as they appear. */
   @keyframes rise {
@@ -63,21 +64,21 @@
 
   @keyframes wave {
     0%,
-    60%,
+    10.8%,
     100% {
       transform: rotate(0);
     }
-    10%,
-    30% {
+    1.8%,
+    5.4% {
       transform: rotate(14deg);
     }
-    20% {
+    3.6% {
       transform: rotate(-8deg);
     }
-    40% {
+    7.2% {
       transform: rotate(-4deg);
     }
-    50% {
+    9% {
       transform: rotate(10deg);
     }
   }

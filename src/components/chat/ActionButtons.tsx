@@ -28,7 +28,7 @@ export function ActionButtons({ actions }: { actions: ResolvedAction[] }) {
             key={action.id}
             href={action.href}
             {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-            className="inline-flex items-center gap-1.5 rounded-full bg-cadre-blue px-4 py-3 text-sm sm:py-2 tracking-[-0.14px] text-white transition-colors hover:bg-cadre-blue-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cadre-blue"
+            className="inline-flex items-center gap-1.5 rounded-full bg-cadre-red px-4 py-3 text-sm sm:py-2 tracking-[-0.14px] text-white transition-colors hover:bg-cadre-red-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cadre-red"
           >
             {action.label}
             <span aria-hidden="true">{external ? "↗" : "→"}</span>

@@ -56,7 +56,7 @@ const CHECK_FIELDS = "Please check the highlighted fields.";
 const TEXT_FIELDS = ["firstName", "lastName", "email", "company", "note"] as const;
 
 const input =
-  "w-full rounded-xl border border-hairline bg-white px-3 py-2 text-sm text-ink focus:border-cadre-blue/50 focus:outline-none focus:ring-2 focus:ring-cadre-blue/20 aria-[invalid=true]:border-red-500";
+  "w-full rounded-xl border border-hairline bg-white px-3 py-2 text-sm text-ink focus:border-cadre-red/50 focus:outline-none focus:ring-2 focus:ring-cadre-red/20 aria-[invalid=true]:border-red-500";
 
 export function HandoffForm({ offer }: { offer: HandoffOffer }) {
   const messages = useContext(ConversationContext);
@@ -240,7 +240,7 @@ export function HandoffForm({ offer }: { offer: HandoffOffer }) {
       <button
         type="submit"
         disabled={sending}
-        className="rounded-full bg-ink px-5 py-3 text-sm sm:py-2 tracking-[-0.14px] text-white transition-colors hover:bg-ink-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-60"
+        className="rounded-full bg-cadre-red px-5 py-3 text-sm sm:py-2 tracking-[-0.14px] text-white transition-colors hover:bg-cadre-red-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cadre-red disabled:opacity-60"
       >
         {sending ? "Sending…" : "Send to the team"}
       </button>

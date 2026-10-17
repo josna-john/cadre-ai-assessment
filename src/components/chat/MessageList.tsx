@@ -24,6 +24,12 @@ export function MessageList({
   const [sentDetails, setSentDetails] = useState<ContactDetails>();
   const sent = useMemo(() => ({ details: sentDetails, remember: setSentDetails }), [sentDetails]);
 
+  // The first reply that offered the handoff form. That reply and every one
+  // after it hide the booking button, since the form already reaches the team.
+  const firstHandoff = messages.findIndex((m) =>
+    m.parts.some((p) => p.type === "tool-offer_handoff"),
+  );
+
   // Keep the newest content in view as messages stream in.
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -58,7 +64,7 @@ export function MessageList({
                       key={i}
                       part={part}
                       role="assistant"
-                      hasHandoff={message.parts.some((p) => p.type === "tool-offer_handoff")}
+                      hasHandoff={firstHandoff !== -1 && index >= firstHandoff}
                       finished={!(streaming && index === messages.length - 1)}
                     />
                   ))}
@@ -77,7 +83,7 @@ export function MessageList({
                 {[0, 150, 300].map((delay) => (
                   <span
                     key={delay}
-                    className="size-2 animate-bounce rounded-full bg-cadre-blue/50"
+                    className="size-2 animate-bounce rounded-full bg-cadre-red/50"
                     style={{ animationDelay: `${delay}ms` }}
                   />
                 ))}
@@ -99,7 +105,7 @@ function AssistantRow({ children }: { children: ReactNode }) {
     <div className="flex animate-rise items-start gap-2.5">
       <span
         aria-hidden="true"
-        className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-sand-dark text-ink ring-1 ring-hairline"
+        className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-sand-dark text-ink ring-1 ring-cadre-red/30"
       >
         <CadreLogo className="h-4 w-auto" />
       </span>

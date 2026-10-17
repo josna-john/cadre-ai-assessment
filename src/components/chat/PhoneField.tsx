@@ -159,7 +159,7 @@ export default function PhoneField({
 
   return (
     <div className="flex">
-      <div className="relative flex shrink-0 items-center gap-1.5 rounded-l-xl border border-r-0 border-hairline bg-white pr-2 pl-3 focus-within:ring-2 focus-within:ring-cadre-blue/20">
+      <div className="relative flex shrink-0 items-center gap-1.5 rounded-l-xl border border-r-0 border-hairline bg-white pr-2 pl-3 focus-within:ring-2 focus-within:ring-cadre-red/20">
         {/* eslint-disable-next-line @next/next/no-img-element -- 1 KB static SVG, nothing for next/image to optimize */}
         <img src={`/flags/${country}.svg`} alt="" width={18} height={12} className="h-3 w-[18px] rounded-[2px] object-cover" />
         <span className="text-sm text-ink-800 tabular-nums">{dialCode(country)}</span>
@@ -191,7 +191,7 @@ export default function PhoneField({
         onBlur={onBlur}
         aria-invalid={invalid}
         aria-describedby={describedBy}
-        className="w-full min-w-0 rounded-r-xl border border-hairline bg-white px-3 py-2 text-sm text-ink focus:border-cadre-blue/50 focus:ring-2 focus:ring-cadre-blue/20 focus:outline-none aria-[invalid=true]:border-red-500"
+        className="w-full min-w-0 rounded-r-xl border border-hairline bg-white px-3 py-2 text-sm text-ink focus:border-cadre-red/50 focus:ring-2 focus:ring-cadre-red/20 focus:outline-none aria-[invalid=true]:border-red-500"
       />
     </div>
   );

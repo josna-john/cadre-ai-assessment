@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { LIMITS } from "@/lib/limits";
 
-// Show the counter once the user is within 20% of the cap.
+// Announce the counter to screen readers once the user is within 20% of the cap.
 const COUNTER_THRESHOLD = Math.floor(LIMITS.maxInputChars * 0.8);
 
 // Typewriter placeholder: example questions the knowledge base can answer, so a
@@ -100,7 +100,7 @@ export function Composer({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <div className="flex items-end gap-2 rounded-[1.75rem] bg-white p-2 shadow-pill focus-within:ring-2 focus-within:ring-cadre-blue/30">
+      <div className="flex items-end gap-2 rounded-[1.75rem] bg-white p-2 shadow-pill focus-within:ring-2 focus-within:ring-cadre-red/30">
         <label htmlFor="chat-input" className="sr-only">
           Ask a question about Cadre AI
         </label>
@@ -139,27 +139,37 @@ export function Composer({
           <button
             type="submit"
             disabled={!canSend}
-            className="h-10 rounded-full bg-cadre-blue px-5 text-sm tracking-[-0.14px] text-white transition-colors hover:bg-cadre-blue-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cadre-blue disabled:cursor-not-allowed disabled:opacity-30"
+            aria-label="Send"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-cadre-red text-white transition-colors hover:bg-cadre-red-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cadre-red disabled:cursor-not-allowed disabled:opacity-30"
           >
-            Send
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" className="size-5">
+              <path
+                d="M10 16V4M10 4l-5 5M10 4l5 5"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </button>
         )}
       </div>
-      <div
-        id="chat-input-hint"
-        className="flex items-start justify-center gap-4 px-3 text-center text-xs text-ink-600"
-      >
-        {/* The bot is grounded in Cadre's KB but can still be wrong; say so where people read answers. */}
-        <span>AI-generated answers can be inaccurate. Please confirm important details with Cadre AI&apos;s team.</span>
-        {length >= COUNTER_THRESHOLD && (
-          <span
-            aria-live="polite"
-            className={`shrink-0 ${tooLong ? "font-medium text-red-600" : ""}`}
-          >
-            {length}/{LIMITS.maxInputChars}
-            {tooLong && " · too long to send"}
-          </span>
+      {/* Side padding keeps the centred line clear of the counter on narrow screens. */}
+      <div id="chat-input-hint" className="relative px-16 text-center text-xs text-ink-600">
+        {tooLong ? (
+          <span className="font-medium text-red-600">Too long to send. Please shorten your message.</span>
+        ) : (
+          // The bot is grounded in Cadre's KB but can still be wrong; say so where people read answers.
+          <span>Cadena can make mistakes. Check important info with Cadre AI&apos;s team.</span>
         )}
+        {/* Always visible, right under the send arrow, so the cap is never a
+            surprise; announced to screen readers only once it matters. */}
+        <span
+          aria-live={length >= COUNTER_THRESHOLD ? "polite" : "off"}
+          className={`absolute top-0 right-2 tabular-nums ${tooLong ? "font-medium text-red-600" : "text-ink-400"}`}
+        >
+          {length}/{LIMITS.maxInputChars}
+        </span>
       </div>
     </form>
   );

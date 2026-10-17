@@ -8,7 +8,7 @@ const interTight = Inter_Tight({ variable: "--font-inter-tight", subsets: ["lati
 const poppins = Poppins({ variable: "--font-poppins", subsets: ["latin"], weight: ["500", "600"] });
 
 export const metadata: Metadata = {
-  title: "Ask Cadre",
+  title: "Cadena · Cadre AI assistant",
   description:
     "Ask questions about Cadre AI's services, industries, and client resources. AI assistant with human follow-up.",
 };

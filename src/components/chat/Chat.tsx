@@ -11,7 +11,7 @@ import { MessageList } from "./MessageList";
 const STARTERS = [
   "What does Cadre AI do?",
   "What is the AI Maturity Index?",
-  "I'm a client — how do I access the portal?",
+  "I'm a client. How do I access the portal?",
   "How do you handle data security?",
 ];
 
@@ -36,17 +36,17 @@ export function Chat() {
 
   return (
     <div className="flex h-dvh w-full flex-col">
-      <header className="border-b border-hairline bg-sand-dark">
+      <header className="border-t-[3px] border-b border-t-cadre-red border-b-hairline bg-sand-dark">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <div className="flex items-center gap-2.5">
             <span
               aria-hidden="true"
-              className="flex size-8 items-center justify-center rounded-full bg-white text-ink shadow-pill"
+              className="flex size-10 items-center justify-center rounded-full bg-white text-ink shadow-pill"
             >
-              <CadreLogo className="h-4 w-auto" />
+              <CadreLogo className="h-5 w-auto" />
             </span>
-            <h1 className="font-brand text-xl font-semibold tracking-tight text-ink">
-              Ask <span className="text-cadre-blue">Cadre</span>
+            <h1 className="font-brand text-2xl font-semibold tracking-tight text-ink">
+              Cadena
             </h1>
           </div>
           <div className="flex items-center gap-2">
@@ -83,7 +83,7 @@ export function Chat() {
             <section aria-labelledby="welcome-title" className="mt-4 space-y-8 sm:mt-10">
               <div className="space-y-3">
                 <p className="animate-rise text-lg text-ink-600">
-                  Hi there{" "}
+                  Hi, I&apos;m <span className="font-medium text-cadre-red">Cadena</span>{" "}
                   <span
                     role="img"
                     aria-label="waving hand"
@@ -96,12 +96,13 @@ export function Chat() {
                   id="welcome-title"
                   className="animate-rise font-heading text-4xl leading-[110%] font-medium tracking-[-1.44px] text-ink-800 [animation-delay:80ms] sm:text-5xl sm:tracking-[-1.8px]"
                 >
-                  How can we <span className="text-cadre-blue">help?</span>
+                  {/* Echoes cadre.ai's "From AI Confusion to AI Confidence" hero. */}
+                  Curious about AI?
+                  <br />
+                  Let&apos;s get you <span className="text-cadre-red">answers</span>.
                 </h2>
                 <p className="max-w-lg animate-rise text-base text-ink-600 [animation-delay:160ms]">
-                  Ask about Cadre&apos;s services, industries, the AI Maturity Index, or the client
-                  portal. Answers come from Cadre&apos;s public information, and a person can follow
-                  up.
+                  Ask me anything about Cadre: what we do, who we work with, or where to start.
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -117,7 +118,7 @@ export function Chat() {
                     {q}
                     <span
                       aria-hidden="true"
-                      className="text-ink-400 transition-transform group-hover:translate-x-0.5 group-hover:text-cadre-blue"
+                      className="text-cadre-red transition-transform group-hover:translate-x-0.5"
                     >
                       →
                     </span>
