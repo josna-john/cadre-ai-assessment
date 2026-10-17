@@ -55,7 +55,8 @@ export const cases: EvalCase[] = [
     covers: "R2 + grounding",
     input: "Do you work with hospitals and healthcare providers?",
     // "don't see … in the industries Cadre lists" is the same correct answer (eval 2026-10-16).
-    includeAny: [["not one of", "isn't one of", "not listed", "isn't listed", "doesn't list", "not among", "aren't among", "isn't among", "don't see", "isn't on", "aren't on"]],
+    // "listed" phrasings were dropped: they talk about sources (D15).
+    includeAny: [["not one of", "isn't one of", "not among", "aren't among", "isn't among", "isn't a core", "not a core", "isn't on", "aren't on"]],
     exclude: [/we (have )?worked with (many |several )?(hospitals|healthcare)/i, "HIPAA compliant"],
     actionsAny: ESCALATE,
     // An answered industry question gets book_call, not a handoff (a junk lead for the team).

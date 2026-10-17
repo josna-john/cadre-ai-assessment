@@ -5,6 +5,9 @@ import type { HandoffOffer } from "@/lib/handoff";
 
 export type BotReply = { text: string; actions: ActionId[]; handoff?: HandoffOffer; finishReason?: string };
 
+const SOURCE_TALK =
+  /\bpublish(ed|es|ing)?\b|\bpublic information\b|\bknowledge base\b|\bmy (knowledge|information|notes)\b|\bmatching (case stud(y|ies)|results?)\b|\b(isn't|is not|aren't|are not|not) listed\b|\bdoesn't list\b|\blisted (industries|here)\b/i;
+
 // Checks that apply to every reply, whatever the case: they encode CLAUDE.md's
 // hard rules, so a regression in any case trips them.
 const UNIVERSAL: { name: string; failed: (r: BotReply, c: EvalCase) => boolean }[] = [
@@ -19,9 +22,9 @@ const UNIVERSAL: { name: string; failed: (r: BotReply, c: EvalCase) => boolean }
   // A reply that hits maxOutputTokens stops mid-sentence and can lose its tool
   // calls, even when the visible text is short enough to pass the check above.
   { name: "not cut off by the output-token cap", failed: (r) => r.finishReason === "length" },
-  // "Cadre doesn't publish pricing" sounds evasive and talks about the bot's
-  // sources; it should say who can help instead.
-  { name: "no talk of what is or isn't published", failed: (r) => /\bpublish(ed|es|ing)?\b|\bpublic information\b/i.test(r.text) },
+  // The bot speaks as a Cadre insider. Talk of what's "published", "listed",
+  // "matching" or in its "knowledge base" sounds evasive or like reading notes.
+  { name: "doesn't talk about its sources", failed: (r) => SOURCE_TALK.test(r.text) },
   // Opening with "I can't…" makes Cadre look evasive; lead with the help.
   // Exempt when the visitor directly asked for the thing (see `directAsk`).
   { name: "doesn't open with a limitation", failed: (r, c) => !c.directAsk && /^\W*(I can't|I cannot|I can not|I don't have|I do not have|I'm not able|I am not able|I'm unable|I am unable|Unfortunately|Sorry)\b/i.test(r.text) },

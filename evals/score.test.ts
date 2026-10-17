@@ -36,8 +36,12 @@ describe("score", () => {
     ]);
   });
 
-  it("flags talk of what Cadre does or doesn't publish", () => {
-    const rule = "no talk of what is or isn't published";
+  it("flags talk about the bot's sources", () => {
+    const rule = "doesn't talk about its sources";
+    expect(score(base, { text: ok + " One matching result is the Loan Intelligence Assistant.", actions: [] })).toEqual([rule]);
+    expect(score(base, { text: ok + " Healthcare isn't one of Cadre's listed industries.", actions: [] })).toEqual([rule]);
+    expect(score(base, { text: ok + " That isn't in my knowledge base.", actions: [] })).toEqual([rule]);
+    expect(score(base, { text: ok + " For a mortgage lender, Cadre built a Loan Intelligence Assistant.", actions: [] })).toEqual([]);
     expect(score(base, { text: ok + " Cadre doesn't publish pricing.", actions: [] })).toEqual([rule]);
     expect(score(base, { text: ok + " I don't have a published turnaround time.", actions: [] })).toEqual([rule]);
     expect(score(base, { text: ok + " Pricing is something the team shares directly.", actions: [] })).toEqual([]);

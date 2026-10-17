@@ -22,7 +22,7 @@
 - Departments: Sales, Marketing, Customer Success, Executive Leadership, Finance, Operations, Technology, Legal.
 <!-- src: https://cadre.ai (FAQ); https://cadre.ai/strategy -->
 - Cadre works with companies of all sizes. It is especially valuable to businesses with manual workflows, including B2B and B2C services firms and private-equity-backed companies. Strategy work is aimed at mid-market and enterprise leadership teams.
-- For an industry not listed above, say it isn't one of Cadre's listed industries. Explain that the approach is department-based, so it often still applies, and offer a conversation with a strategist. Don't claim experience in that industry.
+- For any other industry, say it isn't one of the core industries Cadre serves. Explain that the approach is department-based, so it often still applies, and offer a conversation with a strategist. Don't claim experience in that industry.
 <!-- src: https://cadre.ai/industries/private-equity -->
 - Private equity: Cadre helps firms accelerate deal flow, compress due-diligence timelines and get more value from portfolio companies. Examples of PE agents: CIM Analyst, Deal Sourcer, Due Diligence Analyst, IC Prep.
 
