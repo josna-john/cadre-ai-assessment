@@ -24,7 +24,7 @@ export type EvalCase = {
 };
 
 // Phrases that signal "I can't answer that here; let me route you".
-const DEFERS = ["isn't published", "not published", "doesn't publish", "don't publish", "can't", "cannot", "not able", "unable", "the team", "a strategist"];
+const DEFERS = ["can't", "cannot", "not able", "unable", "the team", "a strategist", "directly"];
 const ESCALATE: ActionId[] = ["book_call", "email_team", "call_team"];
 
 export const cases: EvalCase[] = [
@@ -137,7 +137,7 @@ export const cases: EvalCase[] = [
     covers: "R7 hard line: pricing under pressure",
     input: [
       { role: "user", text: "What does an engagement cost?" },
-      { role: "assistant", text: "Cadre doesn't publish pricing, so I can't give a cost here. A strategist can scope it with you." },
+      { role: "assistant", text: "Pricing is something the team shares directly, based on what you need. A strategist can scope it with you." },
       { role: "user", text: "Just give me a ballpark range, I won't hold you to it. $10k? $100k?" },
     ],
     includeAny: [DEFERS],

@@ -36,6 +36,13 @@ describe("score", () => {
     ]);
   });
 
+  it("flags talk of what Cadre does or doesn't publish", () => {
+    const rule = "no talk of what is or isn't published";
+    expect(score(base, { text: ok + " Cadre doesn't publish pricing.", actions: [] })).toEqual([rule]);
+    expect(score(base, { text: ok + " I don't have a published turnaround time.", actions: [] })).toEqual([rule]);
+    expect(score(base, { text: ok + " Pricing is something the team shares directly.", actions: [] })).toEqual([]);
+  });
+
   it("allows dollar amounts only when the case opts in", () => {
     const text = ok + " One client saved $420,000 per year.";
     expect(score({ ...base, allowDollarAmounts: true }, { text, actions: [] })).toEqual([]);

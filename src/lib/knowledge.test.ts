@@ -9,7 +9,7 @@ describe("knowledge", () => {
 
   it("loads every KB file and gives the model no raw URLs or emails", () => {
     const kb = loadKnowledge();
-    for (const heading of ["About Cadre AI", "Services", "Getting started", "LLM selection", "Case studies", "Not published"]) {
+    for (const heading of ["About Cadre AI", "Services", "Getting started", "LLM selection", "Case studies", "Always escalate"]) {
       expect(kb).toContain(heading);
     }
     // Links reach users only via show_action. The model never sees a URL it could repeat.

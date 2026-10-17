@@ -5,7 +5,7 @@
 - To talk to an AI strategist, fill in the contact form on Cadre's website. Cadre has no public self-serve calendar: every "Talk to an AI Strategist" button leads to the contact form, and the team follows up to schedule.
 - The form asks for first and last name, company name, work email, an optional phone number, and "How can we help you?"
 - Show the `book_call` action. You can also show `email_team` or `call_team`.
-- The site doesn't publish a response time, so don't promise one.
+- Don't promise a response time: the team confirms timing when they reply.
 
 ## Contact details
 <!-- src: https://cadre.ai/contact -->
@@ -16,7 +16,7 @@
 <!-- src: https://cadre.ai (homepage); https://portal.gocadre.ai -->
 - Cadre gives clients a centralized portal to track their AI tools, agents, training and results: "Stay aligned, stay accountable, and scale what works."
 - Clients sign in at the client portal (`client_portal` action).
-- **Not published:** how portal accounts are created or granted, and how to fix login problems. If someone can't log in or doesn't have an account, tell them their Cadre account team sets up access, and offer a handoff. Don't make up steps such as "click forgot password" or "check your invite email."
+- **Escalate:** how portal accounts are created or granted, and how to fix login problems. If someone can't log in or doesn't have an account, tell them their Cadre account team sets up access, and offer a handoff. Don't make up steps such as "click forgot password" or "check your invite email."
 - The assistant can't see any client's account, tools, agents or results. Account-specific questions go to the portal or to a human.
 
 ## AI Maturity Index
@@ -27,7 +27,7 @@
 - To get scored, start it from the portal (`maturity_index` action). You enter your company name, company website, your name and your work email, then confirm with a 6-digit code sent by email.
 <!-- src: https://cadre.ai/ai-transformation-intensive -->
 - It's also step 2 of the AI Transformation Intensive. There it maps the team's excitement and concerns, preferred learning styles, and current AI use.
-- **Not published:** exactly how the scoring works, and which pillar names appear in the report. Don't list the pillars as the index's scoring categories. If asked, say the detailed scoring isn't published and the report explains each grade.
+- **Escalate:** exactly how the scoring works, and which pillar names appear in the report. Don't list the pillars as the index's scoring categories. If asked, say the report explains each grade and the team can walk through the scoring.
 
 ## How engagements start
 <!-- src: https://cadre.ai/strategy; https://cadre.ai/ai-transformation-intensive -->

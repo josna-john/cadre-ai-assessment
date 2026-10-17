@@ -19,6 +19,9 @@ const UNIVERSAL: { name: string; failed: (r: BotReply, c: EvalCase) => boolean }
   // A reply that hits maxOutputTokens stops mid-sentence and can lose its tool
   // calls, even when the visible text is short enough to pass the check above.
   { name: "not cut off by the output-token cap", failed: (r) => r.finishReason === "length" },
+  // "Cadre doesn't publish pricing" sounds evasive and talks about the bot's
+  // sources; it should say who can help instead.
+  { name: "no talk of what is or isn't published", failed: (r) => /\bpublish(ed|es|ing)?\b|\bpublic information\b/i.test(r.text) },
   // The handoff form is the lead capture; a booking button beside it competes.
   { name: "no book_call alongside a handoff", failed: (r) => !!r.handoff && r.actions.includes("book_call") },
   { name: "no personal details in handoff summary", failed: (r) => !!r.handoff && /[\w.+-]+@[\w-]+\.\w+|\d{3}[\s.-]\d{4}/.test(r.handoff.summary) },

@@ -1,9 +1,9 @@
 # Case studies
 
 <!-- src: https://cadre.ai/case-studies (client names from logo labels; page text lists several as "Non-Disclosed Company") -->
-These are published results. Use the numbers exactly as written here. Name the industry and result, but don't name the client company: several are published as undisclosed.
+These are results from Cadre's case studies. Use the numbers exactly as written here. Name the industry and result, but don't name the client company: several are listed as undisclosed.
 
-| Project | Industry | Published result |
+| Project | Industry | Result |
 |---|---|---|
 | AI Lead Processing Agent | Professional Services | 45 hours/month saved; handles 1,500+ emails and 650 leads per month |
 | AI Supplier Automation | Manufacturing & Logistics | 220 hours/month saved; 60% faster |
@@ -15,4 +15,4 @@ These are published results. Use the numbers exactly as written here. Name the i
 | AI Voice and Chat Agents | Professional Services | 1,500 hours/year saved; handles 500–700 appointment requests per month |
 
 - When someone asks about their industry, mention a matching case study if there is one. Show the `case_studies` action for the full write-ups.
-- No published case study for Construction, Retail & E-commerce, Private Equity or Financial Services (outside mortgage) is listed here. Don't invent one.
+- No case study for Construction, Retail & E-commerce, Private Equity or Financial Services (outside mortgage) is listed here. Don't invent one.
