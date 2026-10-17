@@ -46,9 +46,9 @@ evals/                  Scripted conversations + deterministic scorers (`npm run
    - If `knowledge/` doesn't say it, the bot doesn't say it: it redirects or offers a handoff.
    - New facts are added only through `/kb-add`, with a source URL, and reviewed by a human before commit.
    - Pricing, portal access process, Maturity Index scoring and Cadre's own certifications are **not public**. The bot must escalate on those, never guess.
-2. **The model never emits URLs, emails or phone numbers.** It calls `show_action` with an enum value, and `src/lib/actions.ts` maps that to the link. If a new link is needed, add an enum value. Don't put it in the prompt.
+2. **The model never emits URLs, emails or phone numbers.** It calls `show_action` with an enum value, and `src/lib/actions.ts` maps that to the link. To put the team's phone or email in its text, it writes `[[contact:phone]]` / `[[contact:email]]` and `fillContacts()` fills it in from `CONTACTS` (D21). If a new link is needed, add an enum value. Don't put it in the prompt.
 3. **Deterministic code for deterministic things.** Validation, caps, rate limits, link mapping and eval scoring are plain TypeScript. The LLM handles language and judgment only.
-4. **Structured output with zod** for every tool input and handoff. No regex over model text. The one exception is the fixed `[[src:id]]` citation marker, checked against the `sources.ts` allowlist (D18).
+4. **Structured output with zod** for every tool input and handoff. No regex over model text. The exceptions are two fixed markers, each checked against an allowlist: `[[src:id]]` citations (`sources.ts`, D18) and `[[contact:id]]` (`CONTACTS` in `actions.ts`, D21).
 5. **Prompts are code.** They live in `src/prompts/`, not inline in handlers. Every rule gets a one-line comment saying which failure it prevents. When you change a prompt, run `/eval` and record the result.
 6. **Every LLM call logs** model, latency, input/output tokens and `costUsd` (from OpenRouter usage accounting, `costUsd()` in `src/lib/ai.ts`).
 7. **Failure states are features.** Timeouts, provider errors, oversized input and refusals each have a defined UI state. Never show a blank bubble or a stack trace.

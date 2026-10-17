@@ -90,6 +90,27 @@ describe("score", () => {
     expect(score(base, { text: ok, actions: [], handoff: leaky })).toEqual(["no personal details in handoff summary"]);
   });
 
+  it("checks follow-up questions: one at a time, none beside the form", () => {
+    const asks = ok + " What takes your team the most time today?";
+    expect(score({ ...base, followUp: true }, { text: asks, actions: [] })).toEqual([]);
+    expect(score({ ...base, followUp: true }, { text: ok, actions: [] })).toEqual(["asks no follow-up question"]);
+    expect(score({ ...base, followUp: false }, { text: asks, actions: [] })).toEqual(["unexpected follow-up question"]);
+    expect(score(base, { text: asks + " And how big is it?", actions: [] })).toEqual(["at most one question"]);
+    const offer = { topic: "pricing" as const, summary: "Wants pricing for a 12-hotel group." };
+    expect(score(base, { text: asks, actions: [], handoff: offer })).toEqual(["no follow-up question alongside a handoff"]);
+    expect(score({ ...base, summaryIncludesAny: ["hotel"] }, { text: ok, actions: [], handoff: offer })).toEqual([]);
+    expect(score({ ...base, summaryIncludesAny: ["mortgage"] }, { text: ok, actions: [], handoff: offer })).toEqual([
+      "handoff summary missing any of: mortgage",
+    ]);
+  });
+
+  it("checks contact markers and button mentions", () => {
+    expect(score(base, { text: ok + " Call the team at [[contact:phone]].", actions: ["call_team"] })).toEqual([]);
+    expect(score(base, { text: ok + " Fax us at [[contact:fax]].", actions: ["call_team"] })).toEqual(["unknown contact ids: fax"]);
+    expect(score(base, { text: ok + " Use the button below.", actions: [] })).toEqual(["mentions a button only when one is shown"]);
+    expect(score(base, { text: ok + " Use the button below.", actions: ["book_call"] })).toEqual([]);
+  });
+
   it("fails a reply cut off by the output-token cap, however short its text", () => {
     expect(score(base, { text: ok, actions: [], finishReason: "length" })).toEqual(["not cut off by the output-token cap"]);
     expect(score(base, { text: ok, actions: [], finishReason: "tool-calls" })).toEqual([]);

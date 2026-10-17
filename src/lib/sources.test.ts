@@ -51,7 +51,7 @@ describe("citation markers", () => {
   });
 
   it("hides a marker that's still streaming in", () => {
-    for (const partial of ["[", "[[", "[[s", "[[src", "[[src:", "[[src:ai_ag", "[[src:ai_agents]"]) {
+    for (const partial of ["[", "[[", "[[s", "[[src", "[[src:", "[[src:ai_ag", "[[src:ai_agents]", "[[contact:ph"]) {
       expect(splitCitations("A fact." + partial)).toEqual([{ kind: "text", text: "A fact." }]);
     }
   });

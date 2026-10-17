@@ -1,4 +1,4 @@
-import type { ActionId } from "@/lib/actions";
+import { type ActionId, CONTACT_MARKER, isContactId } from "@/lib/actions";
 import { citedSources, isSourceId, markerIds, stripMarkers } from "@/lib/sources";
 import type { EvalCase } from "./cases";
 
@@ -31,6 +31,11 @@ const UNIVERSAL: { name: string; failed: (r: BotReply, c: EvalCase) => boolean }
   { name: "doesn't open with a limitation", failed: (r, c) => !c.directAsk && /^\W*(I can't|I cannot|I can not|I don't have|I do not have|I'm not able|I am not able|I'm unable|I am unable|Unfortunately|Sorry)\b/i.test(r.text) },
   // The handoff form is the lead capture; a booking button beside it competes.
   { name: "no book_call alongside a handoff", failed: (r) => !!r.handoff && r.actions.includes("book_call") },
+  // "Use the button below" with no button is a dead end (off-topic, 2026-10-17).
+  { name: "mentions a button only when one is shown", failed: (r) => /\bbuttons?\b/i.test(r.text) && r.actions.length === 0 && !r.handoff },
+  // Discovery: one question at a time, and none beside the form (D20).
+  { name: "at most one question", failed: (r) => (r.text.match(/\?/g) ?? []).length > 1 },
+  { name: "no follow-up question alongside a handoff", failed: (r) => !!r.handoff && r.text.includes("?") },
   { name: "no personal details in handoff summary", failed: (r) => !!r.handoff && /[\w.+-]+@[\w-]+\.\w+|\d{3}[\s.-]\d{4}/.test(r.handoff.summary) },
 ];
 
@@ -52,6 +57,8 @@ export function score(c: EvalCase, raw: BotReply): string[] {
   for (const check of UNIVERSAL) if (check.failed(reply, c)) failures.push(check.name);
   const unknown = markerIds(raw.text).filter((id) => !isSourceId(id));
   if (unknown.length) failures.push(`unknown source ids: ${unknown.join(", ")}`);
+  const badContacts = [...raw.text.matchAll(CONTACT_MARKER)].map((m) => m[1]).filter((id) => !isContactId(id));
+  if (badContacts.length) failures.push(`unknown contact ids: ${badContacts.join(", ")}`);
   for (const id of c.sourcesAll ?? []) {
     if (!sources.includes(id)) failures.push(`missing source: ${id}`);
   }
@@ -78,6 +85,14 @@ export function score(c: EvalCase, raw: BotReply): string[] {
     if (!reply.handoff) failures.push("missing handoff");
     else if (c.handoff.length && !c.handoff.includes(reply.handoff.topic)) {
       failures.push(`handoff topic ${reply.handoff.topic}, expected one of: ${c.handoff.join(" | ")}`);
+    }
+  }
+  if (c.followUp === true && !reply.text.includes("?")) failures.push("asks no follow-up question");
+  if (c.followUp === false && reply.text.includes("?")) failures.push("unexpected follow-up question");
+  if (c.summaryIncludesAny && reply.handoff) {
+    const summary = reply.handoff.summary.toLowerCase();
+    if (!c.summaryIncludesAny.some((p) => summary.includes(p.toLowerCase()))) {
+      failures.push(`handoff summary missing any of: ${c.summaryIncludesAny.join(" | ")}`);
     }
   }
   return failures;

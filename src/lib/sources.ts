@@ -87,9 +87,9 @@ export function isSourceId(id: string): id is SourceId {
 // because citations have to sit inline and tool calls can't (D18).
 export const SOURCE_MARKER = /\[\[src:([a-z0-9_]+)\]\]/g;
 
-// A marker still streaming in ("[[src:ai_str"), hidden until it completes so
-// the visitor never sees the raw syntax.
-const PARTIAL_MARKER = /\[(\[(s(r(c(:[a-z0-9_]*)?)?)?)?\]?)?$/;
+// A marker still streaming in ("[[src:ai_str", "[[contact:ph"), hidden until
+// it completes so the visitor never sees the raw syntax.
+const PARTIAL_MARKER = /\[(\[([a-z]+(:[a-z0-9_]*)?)?\]?)?$/;
 
 // Ids cited in a reply, in order, deduped, known ids only.
 export function citedSources(text: string): SourceId[] {

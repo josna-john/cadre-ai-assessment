@@ -1,7 +1,7 @@
 import type { UIMessage } from "ai";
 import { useContext } from "react";
 import { z } from "zod";
-import { actionIdSchema, resolveActions } from "@/lib/actions";
+import { actionIdSchema, fillContacts, resolveActions } from "@/lib/actions";
 import { clipSummary, handoffToolInputSchema } from "@/lib/handoff";
 import type { SourceId } from "@/lib/sources";
 import { ActionButtons, ActionPlaceholder, OpenStrategistContext, isActionsOutput } from "./ActionButtons";
@@ -52,9 +52,10 @@ export function MessagePart({
 
   switch (part.type) {
     case "text":
-      // User text is shown verbatim; only assistant text gets markdown.
+      // User text is shown verbatim; only assistant text gets markdown and
+      // contact details filled in from code (D21).
       return role === "assistant" ? (
-        <Markdown text={part.text} sourceOrder={sourceOrder} />
+        <Markdown text={fillContacts(part.text)} sourceOrder={sourceOrder} />
       ) : (
         <p className="whitespace-pre-wrap">{part.text}</p>
       );

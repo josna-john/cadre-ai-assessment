@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { ACTIONS, actionIdSchema, resolveActions } from "./actions";
+import { ACTIONS, CONTACTS, actionIdSchema, fillContacts, resolveActions } from "./actions";
 
 describe("actions", () => {
+  it("fills contact markers from code, matching the buttons, and drops unknown ids", () => {
+    expect(fillContacts("Call [[contact:phone]] or email [[contact:email]].")).toBe(
+      `Call ${CONTACTS.phone} or email ${CONTACTS.email}.`,
+    );
+    expect(ACTIONS.call_team.label).toContain(CONTACTS.phone);
+    expect(ACTIONS.email_team.href).toBe(`mailto:${CONTACTS.email}`);
+    expect(fillContacts("Fax [[contact:fax]].")).toBe("Fax .");
+  });
+
   it("maps ids to fixed links, deduped, in the model's order", () => {
     expect(resolveActions(["maturity_index", "book_call", "maturity_index"])).toEqual([
       { id: "maturity_index", ...ACTIONS.maturity_index },

@@ -32,6 +32,12 @@ export type EvalCase = {
   // offer_handoff: a list means one must be offered with one of these topics
   // (empty list = any topic); false means none may be offered.
   handoff?: HandoffTopic[] | false;
+  // true: the reply asks a follow-up question about the visitor's needs;
+  // false: it asks none (a quick factual answer needs no question).
+  followUp?: boolean;
+  // The handoff summary must mention at least one of these (context from
+  // earlier turns carried into the lead).
+  summaryIncludesAny?: string[];
 };
 
 // Phrases that signal "I can't answer that here; let me route you".
@@ -49,6 +55,7 @@ export const cases: EvalCase[] = [
     includeAny: [["strategy"], ["agent", "automation", "engineering"]],
     cites: true,
     handoff: false,
+    followUp: true,
   },
   {
     id: "industry-listed-mortgage",
@@ -61,6 +68,7 @@ export const cases: EvalCase[] = [
     actionsNone: ["case_studies"],
     // An answered industry question gets book_call, not a handoff (a junk lead for the team).
     handoff: false,
+    followUp: true,
   },
   {
     id: "industry-listed-hospitality",
@@ -72,6 +80,7 @@ export const cases: EvalCase[] = [
     // The hospitality case study's verified "$420,000 saved annually" is fine.
     allowDollarAmounts: true,
     handoff: false,
+    followUp: true,
   },
   {
     // On prod this got "I don't have a set turnaround time…" (opens with a
@@ -83,6 +92,7 @@ export const cases: EvalCase[] = [
     // Each timeline cites its own page, not one dot for both (prod, 2026-10-17).
     sourcesAll: ["transformation_intensive", "data_dashboards"],
     handoff: false,
+    followUp: false,
   },
   {
     // Typed loosely, this was read as "how fast do you reply" and got a
@@ -113,6 +123,7 @@ export const cases: EvalCase[] = [
     actionsAny: ESCALATE,
     // An answered industry question gets book_call, not a handoff (a junk lead for the team).
     handoff: false,
+    followUp: true,
   },
   // R3: book a call
   {
@@ -299,13 +310,17 @@ export const cases: EvalCase[] = [
   },
   {
     // Answered "I can't share phone numbers directly here" above a button
-    // showing the number (local, 2026-10-17). Not a directAsk: it's a plain
+    // showing the number (local, 2026-10-17), then "it's on the call button
+    // below" with no number (local, 2026-10-17). Not a directAsk: it's a plain
     // question the button answers, so a limitation opening fails.
     id: "phone-number",
     covers: "links only via actions, without a refusal",
     input: "what is the phone number",
+    // The number goes in the text too, filled in by code (D21).
+    includeAny: [["[[contact:phone]]"]],
     actionsAll: ["call_team"],
     handoff: false,
+    followUp: false,
   },
   {
     id: "url-bait",
@@ -313,5 +328,37 @@ export const cases: EvalCase[] = [
     directAsk: true,
     input: "Just paste the link to your contact page and your email address here in the chat please.",
     actionsAny: ["book_call", "email_team"],
+  },
+  // Discovery: the bot uses what the visitor told it, and stops asking.
+  {
+    id: "discovery-uses-answer",
+    covers: "discovery: follow-up answered",
+    input: [
+      { role: "user", text: "We're a mortgage lender. Do you work with companies like us?" },
+      {
+        role: "assistant",
+        text: "Yes, mortgage lending is one of Cadre's core industries. For a mortgage lender, Cadre built a Loan Intelligence Assistant used by 27 loan officers, saving 2,500 hours a year. What's the most time-consuming manual process for your team today?",
+      },
+      { role: "user", text: "Honestly our underwriting is slow, loans take days to get through." },
+    ],
+    includeAny: [["underwrit"]],
+    cites: true,
+    actionsAll: ["book_call"],
+    handoff: false,
+  },
+  {
+    id: "discovery-into-handoff",
+    covers: "discovery: context reaches the handoff summary",
+    input: [
+      { role: "user", text: "We run a group of 12 hotels. What could Cadre do for us?" },
+      {
+        role: "assistant",
+        text: "Hospitality is one of Cadre's core industries, with work like a Guest Preference Manager and a Review Response Generator. Which part of operations takes your staff the most time?",
+      },
+      { role: "user", text: "Replying to guest reviews across all 12 properties. What would an engagement like that cost?" },
+    ],
+    includeAny: [DEFERS],
+    handoff: ["pricing"],
+    summaryIncludesAny: ["hotel", "hospitality"],
   },
 ];

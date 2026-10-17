@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { fillContacts } from "./actions";
 import { stripMarkers } from "./sources";
 
 // Escalation to Cadre's team. The flow has two halves, and the model only
@@ -161,8 +162,9 @@ export function transcriptOf(
       role: m.role,
       text: safeSlice(
         m.parts
-          // Source markers are UI syntax; the team reads plain prose.
-          .map((p) => (p.type === "text" && p.text ? stripMarkers(p.text) : ""))
+          // Markers are UI syntax; the team reads plain prose, with contact
+          // details filled in as the visitor saw them.
+          .map((p) => (p.type === "text" && p.text ? stripMarkers(fillContacts(p.text)) : ""))
           .filter(Boolean)
           .join("\n"),
         TRANSCRIPT_TEXT_MAX,
