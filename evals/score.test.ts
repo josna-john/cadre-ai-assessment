@@ -26,6 +26,12 @@ describe("score", () => {
     expect(score(c, { text: ok, actions: [] })).toHaveLength(2);
   });
 
+  it("fails an action the case forbids", () => {
+    const c: EvalCase = { ...base, actionsNone: ["case_studies"] };
+    expect(score(c, { text: ok, actions: ["industry_hospitality"] })).toEqual([]);
+    expect(score(c, { text: ok, actions: ["case_studies"] })).toEqual(["unexpected action: case_studies"]);
+  });
+
   it("flags links, emails, phone numbers and prices written into the text", () => {
     const text = ok + " Visit https://cadre.ai/contact, email hello@gocadre.ai, call (619) 324-3223. Plans start at $5,000.";
     expect(score(base, { text, actions: [] })).toEqual([

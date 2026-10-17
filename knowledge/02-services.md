@@ -52,7 +52,7 @@ Cadre's four core services are AI Strategy, AI Leadership & Facilitation, AI Eng
   - **Prompts & Assistants.**
   - **Voice Agents** for call intake, qualification, support and routing.
   - **Fully fledged AI agents** that run with guardrails and human oversight.
-- Example agents from Cadre's library:
+- Example agents from Cadre's library. Describe these as agents Cadre offers ("Cadre's agent library includes an Automated Underwriter, built to…"), not as work delivered for a particular client:
   - Automated Underwriter ("underwrite loans in minutes, not days")
   - Automated Takeoff Generator (construction)
   - Access Request Provisioner

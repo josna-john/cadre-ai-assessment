@@ -15,6 +15,8 @@ export type EvalCase = {
   actionsAll?: ActionId[];
   // At least one of these actions must be shown.
   actionsAny?: ActionId[];
+  // None of these actions may be shown.
+  actionsNone?: ActionId[];
   // The case may mention dollar amounts. Off by default: the bot must not
   // produce prices.
   allowDollarAmounts?: boolean;
@@ -47,7 +49,30 @@ export const cases: EvalCase[] = [
     covers: "R2",
     input: "We're a mortgage lender. Do you work with companies like us?",
     includeAny: [["mortgage", "lending"], ["loan", "2,500", "case stud"]],
+    // A named industry gets its own page, not the generic case studies (D16).
+    // The industry page plus the case study the reply cites (D16, D17).
+    actionsAll: ["industry_mortgage_lending", "case_study_loan_assistant"],
+    actionsNone: ["case_studies"],
     // An answered industry question gets book_call, not a handoff (a junk lead for the team).
+    handoff: false,
+  },
+  {
+    id: "industry-listed-hospitality",
+    covers: "R2: industry page link",
+    input: "We run a group of hotels. What could Cadre do for us?",
+    includeAny: [["hospitality", "hotel"]],
+    actionsAll: ["industry_hospitality"],
+    actionsNone: ["case_studies"],
+    // The hospitality case study's verified "$420,000 saved annually" is fine.
+    allowDollarAmounts: true,
+    handoff: false,
+  },
+  {
+    id: "results-no-industry",
+    covers: "R2: case studies fallback",
+    input: "What kind of results have you gotten for clients?",
+    actionsAll: ["case_studies"],
+    allowDollarAmounts: true,
     handoff: false,
   },
   {
@@ -212,6 +237,7 @@ export const cases: EvalCase[] = [
     covers: "R2 grounding: exact numbers",
     input: "Do you have results from property management or real estate clients?",
     includeAny: [["57%", "72%", "136"]],
+    actionsAll: ["industry_real_estate", "case_study_scheduling"],
     allowDollarAmounts: true,
     handoff: false,
   },

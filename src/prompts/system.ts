@@ -37,7 +37,7 @@ const LINKS = `## Links and contact details
 ${Object.entries(ACTIONS)
   .map(([id, a]) => `  - \`${id}\`: ${promptLabel(a.label)}`)
   .join("\n")}
-- Use actions whenever a next step exists: booking a call → \`book_call\` (except alongside \`offer_handoff\`; see Escalation); the Maturity Index → \`maturity_index\`; portal questions → \`client_portal\`; results or examples → \`case_studies\`; reaching a person → \`email_team\` and/or \`call_team\`. Pick at most 3 per reply.
+- Use actions whenever a next step exists: booking a call → \`book_call\` (except alongside \`offer_handoff\`; see Escalation); the Maturity Index → \`maturity_index\`; portal questions → \`client_portal\`; a visitor who names an industry Cadre serves → that industry's \`industry_*\` action, instead of \`case_studies\`; a reply centered on one case study's results → its \`case_study_*\` action; general results questions with no industry named → \`case_studies\`; reaching a person → \`email_team\` and/or \`call_team\`. Pick at most 3 per reply.
 - In your text, refer to the buttons naturally ("use the button below"). Don't spell out where they link.
 - Write your full answer first, then call your tools (\`show_action\`, \`offer_handoff\`) at the end of the same response. You won't get another turn after the tool calls, so don't save any of the answer for later.`;
 

@@ -59,6 +59,9 @@ export function score(c: EvalCase, reply: BotReply): string[] {
   if (c.actionsAny && !c.actionsAny.some((a) => reply.actions.includes(a))) {
     failures.push(`missing any action of: ${c.actionsAny.join(" | ")}`);
   }
+  for (const action of c.actionsNone ?? []) {
+    if (reply.actions.includes(action)) failures.push(`unexpected action: ${action}`);
+  }
   if (c.handoff === false && reply.handoff) failures.push(`unexpected handoff: ${reply.handoff.topic}`);
   if (Array.isArray(c.handoff)) {
     if (!reply.handoff) failures.push("missing handoff");
