@@ -15,10 +15,12 @@ const showActionInputSchema = z.object({ actions: z.array(actionIdSchema) });
 // One case per part type we render. Adding a tool is a new
 // `case "tool-<name>"`; unknown parts render nothing.
 //
-// `hasHandoff`: this reply, or an earlier one in the chat, shows the handoff
-// form. The form is the lead capture, so a "Talk to an AI strategist" button
-// under it would be a second, competing way to reach the same team. The prompt
-// asks the model not to pair them; this is the deterministic backstop.
+// `hasHandoff`: this reply shows the handoff form. The form is the lead
+// capture, so a "Talk to an AI strategist" button under it would be a second,
+// competing way to reach the same team. The prompt asks the model not to pair
+// them; this is the deterministic backstop. It stays scoped to this reply:
+// hiding the button in later replies too left "use the button below" with no
+// button when the visitor then asked how to book a call.
 //
 // `finished`: the reply has stopped streaming. A tool call can end up never
 // executed: a reply that hits the output-token cap ends before its tools run,

@@ -41,12 +41,6 @@ export function MessageList({
   const [sentDetails, setSentDetails] = useState<ContactDetails>();
   const sent = useMemo(() => ({ details: sentDetails, remember: setSentDetails }), [sentDetails]);
 
-  // The first reply that offered the handoff form. That reply and every one
-  // after it hide the booking button, since the form already reaches the team.
-  const firstHandoff = messages.findIndex((m) =>
-    m.parts.some((p) => p.type === "tool-offer_handoff"),
-  );
-
   // Keep the newest content in view as messages stream in.
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -77,7 +71,10 @@ export function MessageList({
             ) : (
               <AssistantMessage
                 message={message}
-                hasHandoff={firstHandoff !== -1 && index >= firstHandoff}
+                // Only the reply that shows the form hides the booking button.
+                // A later "how do I book a call?" must get the button its text
+                // promises, even with an unsent form further up (prod, 2026-10-17).
+                hasHandoff={message.parts.some((p) => p.type === "tool-offer_handoff")}
                 formAbove={!!inserted?.open && index >= inserted.after}
                 finished={!(streaming && index === messages.length - 1)}
               />
