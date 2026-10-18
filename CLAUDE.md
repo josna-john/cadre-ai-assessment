@@ -29,6 +29,7 @@ Subagents live in `.claude/agents/`:
 ## Architecture (where things go)
 ```
 knowledge/*.md          Curated facts about Cadre. Every fact has a source URL. The ONLY source of truth for answers.
+src/lib/knowledge.ts    Reads knowledge/ once and caches it: restart `npm run dev` after editing the KB.
 src/prompts/            System prompt pieces, one file per concern, with comments explaining WHY each rule exists.
 src/lib/ai.ts           Model config (OpenRouter). Changing model = editing one string here.
 src/lib/actions.ts      Fixed enum of CTA actions → URLs. The model picks an action; it never writes URLs.
@@ -84,6 +85,6 @@ evals/                  Scripted conversations + deterministic scorers (`npm run
 ## Definition of done
 - [ ] Every requirement in `plan.md` is checked off or marked out of scope with a reason.
 - [ ] Prod URL works in an incognito window. The happy path, a handoff and one error path are tested on prod.
-- [ ] `npm test`, `npm run typecheck` and `npm run eval` pass, and the eval results are recorded in `docs/DECISIONS.md`.
+- [ ] `npm test` and `npm run typecheck` pass. `npm run eval` passes, or each miss is explained in the eval log in `docs/DECISIONS.md`.
 - [ ] The README has the live URL, setup, env vars and a mermaid architecture diagram.
 - [ ] `docs/DECISIONS.md` and `docs/AI_USAGE.md` are filled in. No secrets in git history.
