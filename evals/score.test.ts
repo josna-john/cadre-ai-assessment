@@ -115,6 +115,17 @@ describe("score", () => {
     expect(score(base, { text: ok + " Use the button below.", actions: ["book_call"] })).toEqual([]);
   });
 
+  it("fails a handoff offered in words without the form", () => {
+    const failed = ["offers a handoff only with the form"];
+    expect(score(base, { text: ok + " Would you like me to pass that question along?", actions: [] })).toEqual(failed);
+    expect(score(base, { text: ok + " Can I send this to the team?", actions: [] })).toEqual(failed);
+    const offer = { topic: "other", summary: "Wants details on partnership terms." } as const;
+    expect(score(base, { text: ok + " You can send this to the team with the form below.", actions: [], handoff: offer })).toEqual([]);
+    // Offering a button or more detail is not a handoff.
+    expect(score(base, { text: ok + " Would you like to talk to a strategist?", actions: ["book_call"] })).toEqual([]);
+    expect(score(base, { text: ok + " Would you like me to share more about the Intensive?", actions: [] })).toEqual([]);
+  });
+
   it("fails a reply cut off by the output-token cap, however short its text", () => {
     expect(score(base, { text: ok, actions: [], finishReason: "length" })).toEqual(["not cut off by the output-token cap"]);
     expect(score(base, { text: ok, actions: [], finishReason: "tool-calls" })).toEqual([]);

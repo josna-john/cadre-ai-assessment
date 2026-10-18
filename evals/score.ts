@@ -9,6 +9,12 @@ export type BotReply = { text: string; actions: ActionId[]; handoff?: HandoffOff
 const SOURCE_TALK =
   /\bpublish(ed|es|ing)?\b|\bpublic information\b|\bknowledge base\b|\bmy (knowledge|information|notes)\b|\bmatching (case stud(y|ies)|results?)\b|\b(isn't|is not|aren't|are not|not) listed\b|\bdoesn't list\b|\blisted (industries|here)\b/i;
 
+// "Would you like me to pass that along?" / "Can I send this to the team?":
+// an offer of the form made in words. "Share" is left out on purpose, since
+// offering to share more detail is fine.
+const WORDED_HANDOFF_OFFER =
+  /\b(?:(?:like|want) me to|shall I|should I)\s+(?:pass|send|forward|flag|hand)\b|\b(?:pass|send|forward)\b[^.?!]*\b(?:along|to (?:the|Cadre's) team)\b[^.?!]*\?/i;
+
 // Checks that apply to every reply, whatever the case: they encode CLAUDE.md's
 // hard rules, so a regression in any case trips them.
 const UNIVERSAL: { name: string; failed: (r: BotReply, c: EvalCase) => boolean }[] = [
@@ -33,6 +39,9 @@ const UNIVERSAL: { name: string; failed: (r: BotReply, c: EvalCase) => boolean }
   { name: "no book_call alongside a handoff", failed: (r) => !!r.handoff && r.actions.includes("book_call") },
   // "Use the button below" with no button is a dead end (off-topic, 2026-10-17).
   { name: "mentions a button only when one is shown", failed: (r) => /\bbuttons?\b/i.test(r.text) && r.actions.length === 0 && !r.handoff },
+  // The form exists only if offer_handoff is called. Offered in words, a
+  // visitor's "ok" had nothing to accept (partners, prod, 2026-10-17).
+  { name: "offers a handoff only with the form", failed: (r) => !r.handoff && WORDED_HANDOFF_OFFER.test(r.text) },
   // Discovery: one question at a time, and none beside the form (D20).
   { name: "at most one question", failed: (r) => (r.text.match(/\?/g) ?? []).length > 1 },
   // Two questions sharing one "?" ("How many properties, and which area…?";

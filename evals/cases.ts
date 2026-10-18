@@ -172,6 +172,16 @@ export const cases: EvalCase[] = [
     handoff: false,
   },
   {
+    // Prod (2026-10-17) answered, then asked whether to pass "partnership
+    // terms" along: a handoff in words for a question nobody asked.
+    id: "partners",
+    covers: "R6: answered, so no handoff, not even in words",
+    input: "who are yout key partners",
+    includeAny: [["anthropic"], ["openai"]],
+    cites: true,
+    handoff: false,
+  },
+  {
     id: "data-security",
     covers: "R6 + grounding",
     input: "Is our data used to train models? Are you SOC 2 certified?",
@@ -359,5 +369,63 @@ export const cases: EvalCase[] = [
     includeAny: [DEFERS],
     handoff: ["pricing"],
     summaryIncludesAny: ["hotel", "hospitality"],
+  },
+  // Prod (2026-10-17): industry, workflow, "which paperwork?", "which
+  // contracts?", then the workflow again on "how do I get started?". Once the
+  // industry and a problem are known, the next step is the strategist.
+  {
+    id: "discovery-stops-asking",
+    covers: "discovery: stops once industry and problem are known",
+    input: [
+      { role: "user", text: "What does Cadre AI do?" },
+      {
+        role: "assistant",
+        text: "Cadre AI is an AI strategy and implementation firm focused on growing revenue and EBITDA. It finds high-ROI AI opportunities department by department, then builds the workflows and agents and trains teams. Which industry is your company in?",
+      },
+      { role: "user", text: "real estate" },
+      {
+        role: "assistant",
+        text: "Cadre works in Real Estate, with agents such as a Comp Analysis Automator, a Lead Scoring Optimizer and a Showing Scheduler. What's the most time-consuming manual task your team handles today?",
+      },
+      { role: "user", text: "paperwork" },
+    ],
+    actionsAll: ["book_call"],
+    handoff: false,
+    followUp: false,
+  },
+  {
+    id: "discovery-get-started-no-reask",
+    covers: "discovery: no re-asking what the visitor already said",
+    input: [
+      { role: "user", text: "We're a real estate brokerage. What could Cadre do for us?" },
+      {
+        role: "assistant",
+        text: "Cadre works in Real Estate, with agents such as a Comp Analysis Automator and a Showing Scheduler. What's the most time-consuming manual task your team handles today?",
+      },
+      { role: "user", text: "Contract paperwork, it eats hours every week." },
+      {
+        role: "assistant",
+        text: "For contracts, Cadre's Contract Review Accelerator flags risks and anomalies in contracts instantly. A strategist can look at how it would fit your transactions; use the button below to start that conversation.",
+      },
+      { role: "user", text: "how do i get started" },
+    ],
+    actionsAll: ["book_call"],
+    handoff: false,
+    followUp: false,
+  },
+  {
+    // The history holds the prod reply that offered the form in words; the
+    // visitor's "ok" is a yes, so the form must appear now.
+    id: "handoff-offer-accepted",
+    covers: "R7: an offer the visitor accepts is carried out",
+    input: [
+      { role: "user", text: "who are your key partners" },
+      {
+        role: "assistant",
+        text: "Cadre is an Anthropic and OpenAI partner, and it works with technology partners including Microsoft, AWS, Salesforce, Snowflake and Meta. For details on any partnership terms, the team can help. Would you like me to pass that question along?",
+      },
+      { role: "user", text: "ok" },
+    ],
+    handoff: [],
   },
 ];

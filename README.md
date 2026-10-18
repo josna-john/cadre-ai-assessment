@@ -100,7 +100,7 @@ curl localhost:3000/api/health/ai                                       # end-to
 node --env-file=.env.local scripts/verify-handoff.mjs http://localhost:3000   # handoff + RLS smoke test
 ```
 
-The eval set covers every scenario in the brief, the hard lines (pricing, certifications, account-specific questions), prompt-injection attempts and off-topic requests. Scoring is deterministic TypeScript: required and forbidden phrases, expected actions, whether a handoff is expected or forbidden, no URLs in text, no personal details in handoff summaries. **The latest run passed 20/20** (results history is in [`docs/DECISIONS.md`](docs/DECISIONS.md#eval-log)).
+The eval set covers every scenario in the brief, the hard lines (pricing, certifications, account-specific questions), prompt-injection attempts and off-topic requests. Scoring is deterministic TypeScript: required and forbidden phrases, expected actions, whether a handoff is expected or forbidden, no URLs in text, no personal details in handoff summaries. **The latest full run passed 32/34.** One miss is a known one: an "in detail" request still goes over the 1,200-character limit. The other, an off-topic reply that joined two questions, passed 4/4 on rerun. Results, reruns and triage for every run are in [`docs/DECISIONS.md`](docs/DECISIONS.md#eval-log).
 
 ## Cost and limits
 - About **$0.0003 per chat turn** with a warm prompt cache, and $0.0009 on a cache write.
