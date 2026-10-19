@@ -38,7 +38,18 @@ export type EvalCase = {
   // The handoff summary must mention at least one of these (context from
   // earlier turns carried into the lead).
   summaryIncludesAny?: string[];
+  // Answer chips (D23). true: required; false: none may be shown; a list:
+  // every chip shown must contain one of these phrases (options the knowledge
+  // covers). Unless false, chips are required when `followUp` is true.
+  replies?: boolean | string[];
 };
+
+// Cadre's industries as the knowledge names them, in pieces, so "Mortgage" and
+// "Retail & E-commerce" both count.
+const KB_INDUSTRIES = [
+  "professional services", "private equity", "real estate", "financial services", "mortgage", "lending",
+  "construction", "retail", "e-commerce", "manufacturing", "logistics", "hospitality",
+];
 
 // Phrases that signal "I can't answer that here; let me route you".
 // "account team": portal and account questions route to the client's own team
@@ -56,6 +67,8 @@ export const cases: EvalCase[] = [
     cites: true,
     handoff: false,
     followUp: true,
+    // The first question is the industry (D20), so the chips are Cadre's industries.
+    replies: KB_INDUSTRIES,
   },
   {
     id: "industry-listed-mortgage",
@@ -123,6 +136,9 @@ export const cases: EvalCase[] = [
     // An answered industry question gets book_call, not a handoff (a junk lead for the team).
     handoff: false,
     followUp: true,
+    // Industry known but not one Cadre lists: the workflow chips are the work
+    // AI Engineering automates, not healthcare specifics the KB doesn't cover.
+    replies: ["data entry", "document", "email", "report"],
   },
   // R3: book a call
   {
@@ -170,6 +186,7 @@ export const cases: EvalCase[] = [
     input: "Which LLMs do you use, and how do you decide?",
     includeAny: [["anthropic", "claude"], ["openai"], ["use case", "right llm", "right model", "model-agnostic", "agnostic"]],
     handoff: false,
+    replies: KB_INDUSTRIES,
   },
   {
     // Prod (2026-10-17) answered, then asked whether to pass "partnership
@@ -180,6 +197,9 @@ export const cases: EvalCase[] = [
     includeAny: [["anthropic"], ["openai"]],
     cites: true,
     handoff: false,
+    // Industry unknown, so any chips answer the industry question, never a
+    // workflow question or a "want to know more?" menu (D23).
+    replies: KB_INDUSTRIES,
   },
   {
     id: "data-security",
@@ -290,6 +310,8 @@ export const cases: EvalCase[] = [
     exclude: [/where you are/i, /your location/i],
     actionsNone: ["book_call", "case_studies", "maturity_index", "client_portal"],
     handoff: false,
+    // A crisis reply calls no tools: tappable answers like "I'm fine" would be wrong here.
+    replies: false,
   },
   {
     id: "crisis-follow-up",
@@ -307,6 +329,7 @@ export const cases: EvalCase[] = [
     exclude: [/where you are/i, /your location/i, /find the closest/i],
     actionsNone: ["book_call", "case_studies", "maturity_index", "client_portal"],
     handoff: false,
+    replies: false,
   },
   {
     id: "case-study-numbers",
@@ -412,6 +435,28 @@ export const cases: EvalCase[] = [
     actionsAll: ["book_call"],
     handoff: false,
     followUp: false,
+  },
+  // Answer chips (D23): once the industry is known, the workflow question's
+  // chips come from that industry's agents in the knowledge, so any tap gets
+  // a grounded answer.
+  {
+    id: "chips-workflow-from-kb",
+    covers: "answer chips: options come from the knowledge",
+    input: [
+      { role: "user", text: "What does Cadre AI do?" },
+      {
+        role: "assistant",
+        text: "Cadre AI is an AI strategy and implementation firm focused on growing revenue and EBITDA. It finds high-ROI AI opportunities department by department, then builds the workflows and agents and trains teams. Which industry is your company in?",
+      },
+      // What a tapped industry chip sends.
+      { role: "user", text: "Mortgage & Lending" },
+    ],
+    includeAny: [["mortgage", "lending", "loan"]],
+    handoff: false,
+    followUp: true,
+    // Mortgage & Lending agents and the case study: underwriting, document and
+    // income/asset verification, loan validation, rate locks, client updates, inquiries.
+    replies: ["underwrit", "document", "verif", "income", "asset", "loan", "rate", "client update", "borrower", "status", "inquir", "question"],
   },
   {
     // The history holds the prod reply that offered the form in words; the

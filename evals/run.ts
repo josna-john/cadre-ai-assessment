@@ -6,6 +6,7 @@
 import type { UIMessage } from "ai";
 import type { ActionId } from "@/lib/actions";
 import type { HandoffOffer } from "@/lib/handoff";
+import { type RepliesOutput, missingQuestion } from "@/lib/replies";
 import { MODELS } from "@/lib/ai";
 import { streamChat, summarizeSteps } from "@/lib/chat";
 import { type EvalCase, cases } from "./cases";
@@ -29,7 +30,21 @@ async function runCase(c: EvalCase) {
     r.toolName === "show_action" ? (r.output as { actions: { id: ActionId }[] }).actions.map((a) => a.id) : [],
   );
   const handoff = toolResults.find((r) => r.toolName === "offer_handoff")?.output as HandoffOffer | undefined;
-  return { text, actions, handoff, finishReason, ms: Date.now() - started, ...summarizeSteps(steps) };
+  const chips = toolResults.find((r) => r.toolName === "suggest_replies")?.output as RepliesOutput | undefined;
+  // Score the reply as the visitor sees it: with the question the UI adds when
+  // the text left it out (D23). `asked` records who wrote it, to watch the rate.
+  // Like the UI, nothing is added beside a handoff form.
+  const added = chips && !handoff && missingQuestion(text, chips);
+  return {
+    text: added ? `${text}\n\n${added}` : text,
+    asked: added ? "code" : "",
+    actions,
+    handoff,
+    replies: chips?.replies,
+    finishReason,
+    ms: Date.now() - started,
+    ...summarizeSteps(steps),
+  };
 }
 
 async function main() {
@@ -38,24 +53,24 @@ async function main() {
   console.log(`Running ${selected.length} case(s) against ${MODELS.chat}\n`);
 
   const rows = [];
-  const failures: { id: string; reasons: string[]; text: string; actions: string[]; handoff?: HandoffOffer }[] = [];
+  const failures: { id: string; reasons: string[]; text: string; actions: string[]; replies?: string[]; handoff?: HandoffOffer }[] = [];
 
   // Sequential on purpose: keeps latency numbers honest and is gentle on rate limits.
   for (const c of selected) {
     try {
       const r = await runCase(c);
       const reasons = score(c, r);
-      rows.push({ id: c.id, covers: c.covers, pass: reasons.length === 0 ? "✓" : "✗", ms: r.ms, costUsd: r.costUsd.toFixed(5), actions: r.actions.join(","), handoff: r.handoff?.topic ?? "" });
-      if (reasons.length) failures.push({ id: c.id, reasons, text: r.text, actions: r.actions, handoff: r.handoff });
+      rows.push({ id: c.id, covers: c.covers, pass: reasons.length === 0 ? "✓" : "✗", ms: r.ms, costUsd: r.costUsd.toFixed(5), actions: r.actions.join(","), handoff: r.handoff?.topic ?? "", replies: r.replies?.join(" | ") ?? "", asked: r.asked });
+      if (reasons.length) failures.push({ id: c.id, reasons, text: r.text, actions: r.actions, replies: r.replies, handoff: r.handoff });
     } catch (err) {
-      rows.push({ id: c.id, covers: c.covers, pass: "ERR", ms: 0, costUsd: "0", actions: "", handoff: "" });
+      rows.push({ id: c.id, covers: c.covers, pass: "ERR", ms: 0, costUsd: "0", actions: "", handoff: "", replies: "", asked: "" });
       failures.push({ id: c.id, reasons: [String(err)], text: "", actions: [] });
     }
   }
 
   console.table(rows);
   for (const f of failures) {
-    console.log(`\n✗ ${f.id}\n  reasons: ${f.reasons.join("; ")}\n  actions: [${f.actions.join(", ")}]\n  reply: ${f.text}`);
+    console.log(`\n✗ ${f.id}\n  reasons: ${f.reasons.join("; ")}\n  actions: [${f.actions.join(", ")}]\n  chips: [${f.replies?.join(" | ") ?? ""}]\n  reply: ${f.text}`);
   }
 
   const passed = rows.filter((r) => r.pass === "✓").length;

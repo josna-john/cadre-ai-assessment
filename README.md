@@ -27,6 +27,7 @@ flowchart LR
   CHAT -->|"streamText, 1 step"| OR["OpenRouter<br/>Claude Haiku 5.5"]
   OR -->|"show_action(enum)"| UI
   OR -->|"offer_handoff(topic, summary)"| UI
+  OR -->|"suggest_replies(question, chips)"| UI
   UI -->|"visitor submits form<br/>POST /api/handoff"| FW
   FW --> HO["/api/handoff<br/>zod · honeypot · 5 per 10 min"]
   HO --> DB[("Supabase · handoffs<br/>RLS on, no public access")]
@@ -37,7 +38,8 @@ How a turn works:
 2. **`/api/chat`** validates the request, caps the message size and history, and calls the model in a **single step**. The model writes its answer and calls tools in the same response (D5).
 3. **The model never writes links.** Next steps: it calls `show_action` with an enum (`book_call`, `maturity_index`, `client_portal`, `email_team`), and `src/lib/actions.ts` maps each value to a URL (D3). Sources: it writes a marker like `[[src:ai_strategy]]` after a fact, and the UI swaps known ids for small links from `src/lib/sources.ts`; unknown ids render nothing (D18). A test asserts that the prompt the model sees contains no URLs or emails (D6), and another that every URL the KB cites has a source page.
 4. **Escalation takes two steps** (D4). The model calls `offer_handoff` with a topic and a third-person summary, and the UI renders a form. Nothing is saved until the visitor submits. `/api/handoff` validates with zod, with no LLM involved, and writes to Supabase.
-5. **Every model call logs** latency, tokens, cached tokens and the real dollar cost reported by OpenRouter (`chat.turn` events).
+5. **Answer chips** (D23). When the bot asks its discovery question (industry, then workflow), it calls `suggest_replies` with 2–4 short answers drawn from the KB, and the UI shows them as tappable chips; the chat box stays open for anything else. Code keeps industry chips to the KB's industries and drops unsafe ones (`src/lib/replies.ts`).
+6. **Every model call logs** latency, tokens, cached tokens and the real dollar cost reported by OpenRouter (`chat.turn` events).
 
 Key decisions, each with the alternatives considered, are in [`docs/DECISIONS.md`](docs/DECISIONS.md):
 
@@ -58,13 +60,14 @@ src/prompts/system.ts     System prompt; every rule has a comment saying what it
 src/lib/ai.ts             Model config and cost extraction
 src/lib/chat.ts           One chat turn (shared by the API route and the evals)
 src/lib/chat-request.ts   Request validation and history caps
-src/lib/tools.ts          show_action and offer_handoff tool definitions
+src/lib/tools.ts          show_action, offer_handoff and suggest_replies tool definitions
+src/lib/replies.ts        Answer-chip checks: KB industries, cleaning, the fallback question
 src/lib/actions.ts        Action enum → URL map (next-step buttons)
 src/lib/sources.ts        Source id → URL map (inline citations)
 src/lib/handoff*.ts       Handoff schemas (shared) and Supabase store (server-only)
 src/app/api/              chat, handoff, health/ai routes
 supabase/migrations/      handoffs table, RLS, grants
-evals/                    20 scripted conversations + deterministic scorers
+evals/                    35 scripted conversations + deterministic scorers
 ```
 
 ## Running locally

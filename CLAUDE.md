@@ -34,6 +34,7 @@ src/prompts/            System prompt pieces, one file per concern, with comment
 src/lib/ai.ts           Model config (OpenRouter). Changing model = editing one string here.
 src/lib/actions.ts      Fixed enum of CTA actions → URLs. The model picks an action; it never writes URLs.
 src/lib/sources.ts      Source id → URL map for inline citations ([[src:id]] markers; D18).
+src/lib/replies.ts      Answer chips (D23): KB industry allowlist, chip cleaning, the fallback question.
 src/lib/handoff.ts      Handoff topics + zod schemas (shared with the browser: no secrets).
 src/lib/handoff-store.ts  Server-only Supabase insert. The single seam to swap for a CRM.
 supabase/migrations/    Schema. Apply with `npx supabase db push --db-url "$POSTGRES_URL_NON_POOLING"`.

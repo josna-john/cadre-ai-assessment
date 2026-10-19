@@ -2,7 +2,7 @@ import { ACTIONS } from "@/lib/actions";
 import { MODEL_HANDOFF_TOPICS } from "@/lib/handoff";
 
 // System prompt for the Cadre support assistant, built from named sections.
-// Order: role → grounding → links → sources → escalation → discovery → scope → style → knowledge.
+// Order: role → grounding → links → sources → escalation → discovery → suggested replies → scope → style → knowledge.
 // The rules come before the long knowledge block so they're read first, and
 // everything is static per deploy so the prefix can be prompt-cached.
 //
@@ -44,7 +44,7 @@ ${Object.entries(ACTIONS)
   .join("\n")}
 - Use actions whenever a next step exists: booking a call → \`book_call\` (except alongside \`offer_handoff\`; see Escalation); the Maturity Index → \`maturity_index\`; portal questions → \`client_portal\`; general results questions with no industry named → \`case_studies\` (once the visitor has named an industry, use that industry's actions instead, never \`case_studies\`); reaching a person → \`email_team\` and/or \`call_team\`. Pick at most 3 per reply.
 - In your text, refer to the buttons naturally ("use the button below"). Don't spell out where they link. Mention a button only if you show it with \`show_action\` in the same reply.
-- Write your full answer first, then call your tools (\`show_action\`, \`offer_handoff\`) at the end of the same response. You won't get another turn after the tool calls, so don't save any of the answer for later.`;
+- Write your full answer first, then call your tools (\`show_action\`, \`offer_handoff\`, \`suggest_replies\`) at the end of the same response. You won't get another turn after the tool calls, so don't save any of the answer for later.`;
 
 // Lets visitors check a fact at its source without the model ever writing a
 // URL: it writes a marker with a source id, and the UI turns known ids into
@@ -109,6 +109,40 @@ const DISCOVERY = `## Understanding the visitor's needs
 - Don't ask a follow-up question when you offer a handoff (the form is the next step), when the visitor asked a quick factual question you fully answered (a phone number, office hours, how to log in), or in a crisis reply. After steering an off-topic request back to Cadre, one question about their work is fine.
 - When you offer a handoff, put what you learned into the summary (for example "Wants pricing for a 200-person mortgage lender whose loan officers spend hours chasing borrower documents").`;
 
+// Answer chips for the discovery question (D23). Prevents:
+// - options the bot then can't answer from the knowledge (a chip for an
+//   industry or service Cadre doesn't list leads straight to a dead end)
+// - chips that don't answer the question asked (service names under "which
+//   industry?"), or sentences instead of taps
+// - "Other" chips: the chat box is always there for anything else
+// - a workflow question (with generic chips) before the industry is known: a
+//   first version gave chips for that case, and "What does Cadre AI do?" then
+//   skipped the industry question Discovery asks first (local, 2026-10-19)
+// - chips under a reply that asks nothing, used as a menu ("Yes, book a call",
+//   "Show me case studies"): 4 of 35 eval cases on the first run (2026-10-19).
+//   Rerun: "Would you like to know more?" got "Yes, tell me more" chips, so
+//   only the two discovery questions get chips, numbered in their order.
+// - the question left out of the text, with chips standing in for it (4 of 12
+//   reruns). The UI now adds the question in code's words when that happens
+//   (missingQuestion in replies.ts), but the model's own question reads better.
+// - menu chips and workflow-before-industry persisted under prompt rules alone,
+//   so the tool now names its question ("industry" | "workflow") and code keeps
+//   industry chips to the KB's industries (cleanReplies in replies.ts).
+// - healthcare workflow chips the KB doesn't cover ("Billing and claims"), and
+//   healthcare replies ending on the strategist with no question (0/3 after
+//   the section was shortened; the KB's unlisted-industry note ends there).
+//   Worded "outside Cadre's core ones": "an industry Cadre doesn't list" was
+//   echoed as "Cadre doesn't list healthcare" (source talk, D15).
+// - chips under a reply with no question, a handoff form or a crisis reply
+// Code drops unsafe, overlong and catch-all chips (src/lib/replies.ts).
+const SUGGESTED_REPLIES = `## Suggested replies
+- Your discovery question (see Understanding the visitor's needs) comes with answer chips: write the question as the last sentence of your text, then call \`suggest_replies\` with 2–4 likely answers. Chips show only the answers, never the question. A tap sends the chip as the visitor's message; they can always type instead, so never add "Other".
+- Only these two questions get chips, in this order, with options from the KNOWLEDGE so you can answer any tap:
+  1. \`question: "industry"\`, until the visitor has told you their industry: ask which industry they're in. Chips: Cadre's industries exactly as named ("Mortgage & Lending"); with no clue, lead with industries that have case studies. Never ask about workflows or tasks before you know the industry.
+  2. \`question: "workflow"\`, once you know the industry: ask which manual work takes the most time. Chips: that industry's agents or workflows in the knowledge, as the visitor's problem ("Underwriting takes days"). An industry outside Cadre's core ones (healthcare, say) still gets this question, with chips "Data entry", "Document routing", "Email triage", "Report generation".
+- No chips for any other question ("Would you like to know more?"), a reply with no question, a handoff, or a crisis reply. Chips are answers, never next steps like "Book a call" or "Tell me more".
+- Each option: the visitor's voice, at most about five words, distinct, with no name, contact detail, link or price.`;
+
 // Prevents the bot being used as a free general-purpose assistant on Cadre's
 // budget, prompt-injection takeovers, and visitors pasting sensitive data.
 // Crisis rule: without it the model's own safety behavior was good but
@@ -157,7 +191,7 @@ const STYLE = `## Style
 - End with a helpful next step when one exists, or with your one follow-up question (see Understanding the visitor's needs).`;
 
 export function buildSystemPrompt(knowledge: string): string {
-  return [ROLE, GROUNDING, LINKS, SOURCES_RULES, ESCALATION, DISCOVERY, SCOPE, STYLE, `## KNOWLEDGE\n${knowledge}`].join(
+  return [ROLE, GROUNDING, LINKS, SOURCES_RULES, ESCALATION, DISCOVERY, SUGGESTED_REPLIES, SCOPE, STYLE, `## KNOWLEDGE\n${knowledge}`].join(
     "\n\n",
   );
 }

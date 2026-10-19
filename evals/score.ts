@@ -4,7 +4,8 @@ import type { EvalCase } from "./cases";
 
 import type { HandoffOffer } from "@/lib/handoff";
 
-export type BotReply = { text: string; actions: ActionId[]; handoff?: HandoffOffer; finishReason?: string };
+// `replies`: the answer chips after cleaning, as the UI shows them (D23).
+export type BotReply = { text: string; actions: ActionId[]; handoff?: HandoffOffer; replies?: string[]; finishReason?: string };
 
 const SOURCE_TALK =
   /\bpublish(ed|es|ing)?\b|\bpublic information\b|\bknowledge base\b|\bmy (knowledge|information|notes)\b|\bmatching (case stud(y|ies)|results?)\b|\b(isn't|is not|aren't|are not|not) listed\b|\bdoesn't list\b|\blisted (industries|here)\b/i;
@@ -48,6 +49,10 @@ const UNIVERSAL: { name: string; failed: (r: BotReply, c: EvalCase) => boolean }
   // prod, 2026-10-17). A choice list ("pricing, guests or reporting?") is fine.
   { name: "question asks one thing", failed: (r) => /[^.!?\s]\s+(and|or)\s+(how|what|which|who|where|when|why|do|does|are|is|would)\b[^.!?]*\?/i.test(r.text) },
   { name: "no follow-up question alongside a handoff", failed: (r) => !!r.handoff && r.text.includes("?") },
+  // Answer chips answer a question; under a statement or beside the form a tap
+  // would send words that reply to nothing (D23).
+  { name: "answer chips only with a question", failed: (r) => !!r.replies?.length && !r.text.includes("?") },
+  { name: "no answer chips alongside a handoff", failed: (r) => !!r.handoff && !!r.replies?.length },
   { name: "no personal details in handoff summary", failed: (r) => !!r.handoff && /[\w.+-]+@[\w-]+\.\w+|\d{3}[\s.-]\d{4}/.test(r.handoff.summary) },
 ];
 
@@ -101,6 +106,17 @@ export function score(c: EvalCase, raw: BotReply): string[] {
   }
   if (c.followUp === true && !reply.text.includes("?")) failures.push("asks no follow-up question");
   if (c.followUp === false && reply.text.includes("?")) failures.push("unexpected follow-up question");
+  const chips = reply.replies ?? [];
+  // A discovery question comes with answer chips (D23), unless the case says none.
+  if ((c.replies === true || (c.followUp === true && c.replies !== false)) && chips.length === 0) {
+    failures.push("no answer chips");
+  }
+  if (c.replies === false && chips.length) failures.push(`unexpected answer chips: ${chips.join(" | ")}`);
+  if (Array.isArray(c.replies)) {
+    const allowed = c.replies.map((p) => p.toLowerCase());
+    const offList = chips.filter((chip) => !allowed.some((p) => chip.toLowerCase().includes(p)));
+    if (offList.length) failures.push(`answer chips not from the knowledge: ${offList.join(" | ")}`);
+  }
   if (c.summaryIncludesAny && reply.handoff) {
     const summary = reply.handoff.summary.toLowerCase();
     if (!c.summaryIncludesAny.some((p) => summary.includes(p.toLowerCase()))) {

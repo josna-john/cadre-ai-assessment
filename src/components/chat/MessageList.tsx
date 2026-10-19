@@ -6,6 +6,7 @@ import { SOURCES, citedSources, type SourceId } from "@/lib/sources";
 import { CadreLogo } from "./CadreLogo";
 import { ConversationContext, SentDetailsContext, type ContactDetails } from "./HandoffForm";
 import { MessagePart } from "./MessagePart";
+import { ReplyChips, chipsOf } from "./ReplyChips";
 
 // Every source a reply cites, in order, across all its text parts.
 const sourcesOf = (message: UIMessage) =>
@@ -23,12 +24,15 @@ export function MessageList({
   streaming,
   footer,
   inserted,
+  onReply,
 }: {
   messages: UIMessage[];
   showTyping: boolean;
   // The last reply is still arriving.
   streaming: boolean;
   footer?: ReactNode;
+  // Sends a tapped answer chip as the visitor's message (D23).
+  onReply?: (text: string) => void;
   // Rendered after the first `after` messages and kept there as the chat
   // continues: the strategist form stays where the visitor opened it (D19).
   // While it's `open` (not yet sent), later replies point to it instead of
@@ -79,6 +83,16 @@ export function MessageList({
                 finished={!(streaming && index === messages.length - 1)}
               />
             )}
+            {/* Answer chips belong to the open question only: the newest reply,
+                once it has finished. Replying in any way moves past them, and a
+                strategist form opened below the reply takes over as the next step. */}
+            {message.role === "assistant" &&
+              index === messages.length - 1 &&
+              !streaming &&
+              onReply &&
+              !(inserted?.open && inserted.after === messages.length) && (
+              <ReplyChips replies={chipsOf(message).replies} onReply={onReply} />
+            )}
             {inserted?.after === index + 1 && inserted.node}
             </Fragment>
           ))}
@@ -121,21 +135,29 @@ function AssistantMessage({
   finished: boolean;
 }) {
   const sources = sourcesOf(message);
+  // The discovery question in code's words, when the reply's chips need one
+  // its text didn't ask (D23). It stays with the reply, like its text.
+  const question = finished ? chipsOf(message).question : undefined;
+  // It follows the reply's text, before any buttons, so it reads as the
+  // reply's last sentence.
+  const lastText = message.parts.findLastIndex((p) => p.type === "text");
   return (
     <AssistantRow>
       <div className="min-w-0 flex-1 space-y-4 rounded-card rounded-tl-md bg-white px-5 py-4 leading-relaxed text-ink-800 shadow-[var(--shadow-pill),var(--shadow-card)] sm:max-w-[90%] sm:flex-none">
         <span className="sr-only">Assistant: </span>
         {message.parts.map((part, i) => (
-          <MessagePart
-            key={i}
-            part={part}
-            role="assistant"
-            hasHandoff={hasHandoff}
-            citesSpecifics={citesSpecifics(sources)}
-            formAbove={formAbove}
-            finished={finished}
-            sourceOrder={sources}
-          />
+          <Fragment key={i}>
+            <MessagePart
+              part={part}
+              role="assistant"
+              hasHandoff={hasHandoff}
+              citesSpecifics={citesSpecifics(sources)}
+              formAbove={formAbove}
+              finished={finished}
+              sourceOrder={sources}
+            />
+            {question && i === lastText && <p className="animate-rise">{question}</p>}
+          </Fragment>
         ))}
         {/* The cited pages in one place, numbered like the dots in the text,
             once the reply has finished (so the row doesn't reflow mid-stream). */}

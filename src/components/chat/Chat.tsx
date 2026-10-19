@@ -194,6 +194,8 @@ export function Chat() {
               messages={messages}
               showTyping={status === "submitted"}
               streaming={busy}
+              // A reply that ended in an error offers Retry instead of chips.
+              onReply={error ? undefined : send}
               inserted={
                 strategist
                   ? { after: strategist.at, node: strategistForm, open: strategist.state !== "sent" }

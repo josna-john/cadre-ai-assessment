@@ -92,8 +92,9 @@ describe("score", () => {
 
   it("checks follow-up questions: one at a time, none beside the form", () => {
     const asks = ok + " What takes your team the most time today?";
-    expect(score({ ...base, followUp: true }, { text: asks, actions: [] })).toEqual([]);
-    expect(score({ ...base, followUp: true }, { text: ok, actions: [] })).toEqual(["asks no follow-up question"]);
+    const chips = ["Invoice processing", "Email triage"];
+    expect(score({ ...base, followUp: true }, { text: asks, actions: [], replies: chips })).toEqual([]);
+    expect(score({ ...base, followUp: true }, { text: ok, actions: [] })).toEqual(["asks no follow-up question", "no answer chips"]);
     expect(score({ ...base, followUp: false }, { text: asks, actions: [] })).toEqual(["unexpected follow-up question"]);
     expect(score(base, { text: asks + " And how big is it?", actions: [] })).toEqual(["at most one question"]);
     const compound = ok + " How many properties do you have, and which area takes the most time?";
@@ -124,6 +125,31 @@ describe("score", () => {
     // Offering a button or more detail is not a handoff.
     expect(score(base, { text: ok + " Would you like to talk to a strategist?", actions: ["book_call"] })).toEqual([]);
     expect(score(base, { text: ok + " Would you like me to share more about the Intensive?", actions: [] })).toEqual([]);
+  });
+
+  it("checks answer chips: only with a question, never beside the form, from the knowledge when listed", () => {
+    const asks = ok + " What industry is your company in?";
+    const chips = ["Mortgage & Lending", "Real Estate"];
+    expect(score(base, { text: asks, actions: [], replies: chips })).toEqual([]);
+    expect(score(base, { text: ok, actions: [], replies: chips })).toEqual(["answer chips only with a question"]);
+    const offer = { topic: "pricing" as const, summary: "Wants pricing." };
+    expect(score(base, { text: ok, actions: [], handoff: offer, replies: chips })).toEqual([
+      "answer chips only with a question",
+      "no answer chips alongside a handoff",
+    ]);
+    // followUp implies chips unless the case opts out.
+    expect(score({ ...base, followUp: true }, { text: asks, actions: [] })).toEqual(["no answer chips"]);
+    expect(score({ ...base, followUp: true, replies: false }, { text: asks, actions: [] })).toEqual([]);
+    expect(score({ ...base, replies: false }, { text: asks, actions: [], replies: chips })).toEqual([
+      "unexpected answer chips: Mortgage & Lending | Real Estate",
+    ]);
+    const industries = { ...base, replies: ["mortgage", "real estate", "hospitality"] };
+    expect(score(industries, { text: asks, actions: [], replies: chips })).toEqual([]);
+    expect(score(industries, { text: asks, actions: [], replies: [...chips, "Healthcare"] })).toEqual([
+      "answer chips not from the knowledge: Healthcare",
+    ]);
+    // A list checks the chips shown; it doesn't require any.
+    expect(score(industries, { text: asks, actions: [] })).toEqual([]);
   });
 
   it("fails a reply cut off by the output-token cap, however short its text", () => {
