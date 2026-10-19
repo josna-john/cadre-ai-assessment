@@ -6,7 +6,7 @@
 import type { UIMessage } from "ai";
 import type { ActionId } from "@/lib/actions";
 import type { HandoffOffer } from "@/lib/handoff";
-import { type RepliesOutput, missingQuestion } from "@/lib/replies";
+import { type RepliesOutput, chipsView } from "@/lib/replies";
 import { MODELS } from "@/lib/ai";
 import { streamChat, summarizeSteps } from "@/lib/chat";
 import { type EvalCase, cases } from "./cases";
@@ -31,16 +31,18 @@ async function runCase(c: EvalCase) {
   );
   const handoff = toolResults.find((r) => r.toolName === "offer_handoff")?.output as HandoffOffer | undefined;
   const chips = toolResults.find((r) => r.toolName === "suggest_replies")?.output as RepliesOutput | undefined;
-  // Score the reply as the visitor sees it: with the question the UI adds when
-  // the text left it out (D23). `asked` records who wrote it, to watch the rate.
-  // Like the UI, nothing is added beside a handoff form.
-  const added = chips && !handoff && missingQuestion(text, chips);
+  // Score the reply as the visitor sees it (D23): with the question the UI adds
+  // when the text left it out, and without chips the UI hides because the text
+  // asks something else. `chips` records which happened, to watch the rates.
+  // Beside a handoff form the raw chips are kept, so that check still fires.
+  const view = chips && !handoff ? chipsView(text, chips) : undefined;
+  const hidden = !!chips?.replies.length && !!view && view.replies.length === 0;
   return {
-    text: added ? `${text}\n\n${added}` : text,
-    asked: added ? "code" : "",
+    text: view?.question ? `${text}\n\n${view.question}` : text,
+    asked: view?.question ? "code" : hidden ? "hidden: other question" : "",
     actions,
     handoff,
-    replies: chips?.replies,
+    replies: view ? view.replies : chips?.replies,
     finishReason,
     ms: Date.now() - started,
     ...summarizeSteps(steps),

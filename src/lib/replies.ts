@@ -85,12 +85,34 @@ export const QUESTION_TEXT: Record<SuggestRepliesInput["question"], string> = {
   workflow: "Which manual work takes your team the most time today?",
 };
 
-// Chips need their question above them. The model sometimes picks the chips
-// but leaves the question out of its text (4 of 12 eval reruns, 2026-10-19),
-// and a tap would then answer nothing, so the UI adds the question in code's
-// words. Returns it, or nothing when the text already asks one.
-export function missingQuestion(replyText: string, chips: RepliesOutput): string | undefined {
-  return chips.replies.length > 0 && !replyText.includes("?") ? QUESTION_TEXT[chips.question] : undefined;
+// What the last question in a reply must be about for each kind of chip.
+// Loose on purpose: a miss only hides the chips, never shows wrong ones.
+const ASKS_ABOUT: Record<SuggestRepliesInput["question"], RegExp> = {
+  industry: /industr|sector|line of business|(kind|type) of (business|company)/i,
+  workflow: /manual|process|workflow|task|paperwork|bottleneck|most time|time-consuming|takes? (up )?(the )?time/i,
+};
+
+// The last sentence that ends in "?", or undefined.
+function lastQuestion(text: string): string | undefined {
+  const end = text.lastIndexOf("?");
+  if (end < 0) return undefined;
+  const before = text.slice(0, end);
+  const start = Math.max(before.lastIndexOf("."), before.lastIndexOf("!"), before.lastIndexOf("?"), before.lastIndexOf("\n"));
+  return text.slice(start + 1, end + 1);
+}
+
+// What the chips' question needs on screen (D23):
+// - the text asks the chips' question: the chips;
+// - the text asks nothing (the model picked chips but left the question out:
+//   4 of 12 eval reruns, 2026-10-19): the chips, plus the question in code's words;
+// - the text asks something else ("strategist or score first?" over industry
+//   chips, prod, 2026-10-19): nothing, since the chips would answer a question
+//   nobody asked. The visitor sees the model's question, as before chips.
+export function chipsView(replyText: string, chips: RepliesOutput): { replies: string[]; question?: string } {
+  if (chips.replies.length === 0) return { replies: [] };
+  const asked = lastQuestion(replyText);
+  if (!asked) return { replies: chips.replies, question: QUESTION_TEXT[chips.question] };
+  return ASKS_ABOUT[chips.question].test(asked) ? { replies: chips.replies } : { replies: [] };
 }
 
 export type RepliesOutput = { question: SuggestRepliesInput["question"]; replies: string[] };

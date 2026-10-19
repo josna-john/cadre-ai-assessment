@@ -1,10 +1,11 @@
 "use client";
 
 import type { UIMessage } from "ai";
-import { type RepliesOutput, cleanReplies, isRepliesOutput, missingQuestion, suggestRepliesInputSchema } from "@/lib/replies";
+import { type RepliesOutput, chipsView, cleanReplies, isRepliesOutput, suggestRepliesInputSchema } from "@/lib/replies";
 
 // What a finished reply's discovery question needs on screen (D23): its chips,
-// and the question itself in code's words if the reply text left it out.
+// and the question itself in code's words if the reply text left it out; no
+// chips if the text asks a different question (chipsView).
 // Nothing beside a handoff form: the form is the next step there (D20).
 // A call that was never executed (the reply hit the output cap after choosing
 // them) is checked and cleaned exactly as the tool would, like show_action's fallback.
@@ -12,7 +13,7 @@ export function chipsOf(message: UIMessage): { replies: string[]; question?: str
   const chips = chosenChips(message);
   if (!chips || hasHandoff(message)) return { replies: [] };
   const text = message.parts.map((p) => (p.type === "text" ? p.text : "")).join(" ");
-  return { replies: chips.replies, question: missingQuestion(text, chips) };
+  return chipsView(text, chips);
 }
 
 const hasHandoff = (message: Pick<UIMessage, "parts">) =>

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CONTACTS } from "./actions";
 import { loadKnowledge } from "./knowledge";
-import { INDUSTRIES, MAX_REPLIES, QUESTION_TEXT, cleanReplies, isRepliesOutput, missingQuestion } from "./replies";
+import { INDUSTRIES, MAX_REPLIES, QUESTION_TEXT, chipsView, cleanReplies, isRepliesOutput } from "./replies";
 
 const workflow = (replies: string[]) => cleanReplies({ question: "workflow", replies });
 const industry = (replies: string[]) => cleanReplies({ question: "industry", replies });
@@ -80,15 +80,36 @@ describe("INDUSTRIES", () => {
   });
 });
 
-describe("missingQuestion", () => {
-  const chips = { question: "industry" as const, replies: ["Retail & E-commerce", "Hospitality"] };
-  it("adds the question in code's words when the reply text doesn't ask one", () => {
-    expect(missingQuestion("Cadre is an AI strategy firm.", chips)).toBe(QUESTION_TEXT.industry);
-    expect(missingQuestion("Cadre is an AI strategy firm.", { ...chips, question: "workflow" })).toBe(QUESTION_TEXT.workflow);
+describe("chipsView", () => {
+  const industry = { question: "industry" as const, replies: ["Retail & E-commerce", "Hospitality"] };
+  const workflow = { question: "workflow" as const, replies: ["Underwriting takes days", "Verifying income documents"] };
+  const answer = "Cadre is an AI strategy firm.[[src:home]]";
+
+  it("shows the chips under the question they answer", () => {
+    expect(chipsView(`${answer} Which industry is your company in?`, industry)).toEqual({ replies: industry.replies });
+    expect(chipsView(`${answer} What kind of business do you run?`, industry)).toEqual({ replies: industry.replies });
+    expect(chipsView(`${answer} Which manual process takes your team the most time?`, workflow)).toEqual({
+      replies: workflow.replies,
+    });
+    expect(chipsView(`${answer} What's the most time-consuming part of your loan officers' day?`, workflow).replies).toEqual(
+      workflow.replies,
+    );
   });
-  it("adds nothing when the text asks, or there are no chips", () => {
-    expect(missingQuestion("Which industry are you in?", chips)).toBeUndefined();
-    expect(missingQuestion("Cadre is an AI strategy firm.", { ...chips, replies: [] })).toBeUndefined();
+
+  it("adds the question in code's words when the text asks none", () => {
+    expect(chipsView(answer, industry)).toEqual({ replies: industry.replies, question: QUESTION_TEXT.industry });
+    expect(chipsView(answer, workflow)).toEqual({ replies: workflow.replies, question: QUESTION_TEXT.workflow });
+  });
+
+  it("hides the chips under a different question (prod, 2026-10-19)", () => {
+    const prod = `${answer} Would you like to start with a conversation with an AI strategist, or get a free baseline score first?`;
+    expect(chipsView(prod, industry)).toEqual({ replies: [] });
+    expect(chipsView(`${answer} Which industry are you in? Would you like to know more?`, industry)).toEqual({ replies: [] });
+    expect(chipsView(`${answer} Which industry is your company in?`, workflow)).toEqual({ replies: [] });
+  });
+
+  it("shows nothing when there are no chips", () => {
+    expect(chipsView(answer, { ...industry, replies: [] })).toEqual({ replies: [] });
   });
 });
 

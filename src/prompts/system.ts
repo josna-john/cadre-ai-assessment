@@ -124,7 +124,9 @@ const DISCOVERY = `## Understanding the visitor's needs
 //   only the two discovery questions get chips, numbered in their order.
 // - the question left out of the text, with chips standing in for it (4 of 12
 //   reruns). The UI now adds the question in code's words when that happens
-//   (missingQuestion in replies.ts), but the model's own question reads better.
+//   (chipsView in replies.ts), but the model's own question reads better.
+// - industry chips under a different question ("strategist or score first?",
+//   prod, 2026-10-19): the UI now hides chips whose question the text doesn't ask.
 // - menu chips and workflow-before-industry persisted under prompt rules alone,
 //   so the tool now names its question ("industry" | "workflow") and code keeps
 //   industry chips to the KB's industries (cleanReplies in replies.ts).
